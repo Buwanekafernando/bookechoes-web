@@ -1,8 +1,27 @@
-body {
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&display=swap');
+
+:root {
+  --font-main: 'Nunito', sans-serif;
+  
+  /* Color Palette based on the design */
+  --color-cream: #FFF5E6; /* Light peach/cream background */
+  --color-dark-green: #4A5D23; /* Olive/Dark Green for buttons/accents */
+  --color-dark-text: #1A2E35; /* Dark blue/black for text */
+  --color-pink-accent: #FFD6C9; /* Pinkish accent for pills */
+  --color-purple-gradient: linear-gradient(90deg, #FF6B6B 0%, #D946EF 100%); /* For logo/accents if needed */
+  --color-footer-bg: #FFEBCD; /* Slightly darker cream for footer */
+}
+
+* {
+  box-sizing: border-box;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-main);
+  background-color: var(--color-cream);
+  color: var(--color-dark-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -10,4 +29,18 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-cream); 
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-dark-green); 
+  border-radius: 4px;
 }

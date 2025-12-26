@@ -1,0 +1,242 @@
+/* Hero Section */
+.hero-wrapper {
+    position: relative;
+    width: 100%;
+    height: 600px;
+    background-image: url('../assets/background-logo.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    padding-top: 3rem;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: 0;
+    margin-bottom: 3rem;
+}
+
+.hero-title-container {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    text-align: center;
+}
+
+.hero-title {
+    font-family: 'Nunito', sans-serif;
+    font-size: 4rem;
+    font-weight: 900;
+    color: #072e2d;
+    letter-spacing: 10px;
+    text-transform: uppercase;
+    margin: 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.white-curve-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 150px;
+    background-color: var(--color-cream, #FFF5E6);
+    /* Fallback */
+    border-top-left-radius: 50% 100%;
+    border-top-right-radius: 50% 100%;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.nav-pills-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: -25px;
+    z-index: 3;
+}
+
+.pill {
+    background-color: #1A1A1A;
+    color: #FFF;
+    padding: 0.8rem 2rem;
+    border-radius: 50px;
+    border: none;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+}
+
+/* Sections */
+.home-container {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+}
+
+.section {
+    padding: 2rem 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    z-index: 2;
+}
+
+.heading {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: var(--color-dark-text, #1A2E35);
+    margin-bottom: 1.5rem;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.sub-heading {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--color-dark-text, #1A2E35);
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    text-align: center;
+}
+
+.dropdown {
+    background-color: #FFD6C9;
+    padding: 0.8rem 3rem;
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+    gap: 4rem;
+    cursor: pointer;
+    font-weight: 700;
+    margin-bottom: 2rem;
+}
+
+.dropdown-text {
+    margin-right: 10px;
+}
+
+/* Split Section */
+.split-section {
+    display: flex;
+    width: 100%;
+    max-width: 1000px;
+    margin: 2rem auto;
+    min-height: 300px;
+    position: relative;
+}
+
+.split-col {
+    flex: 1;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.divider {
+    width: 2px;
+    background-color: #000;
+    height: 100%;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* Grids */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.card {
+    background-color: #CAE9FF;
+    border-radius: 10px;
+    aspect-ratio: 2/3;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+}
+
+.card-internal {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 30%;
+    background-color: #7CB518;
+    border-top-left-radius: 50% 20%;
+    border-top-right-radius: 50% 20%;
+}
+
+/* Carousel */
+.carousel-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    width: 100%;
+    max-width: 1200px;
+    min-height: 200px;
+}
+
+.carousel-grid {
+    display: flex;
+    gap: 1rem;
+    overflow: hidden;
+    padding: 1rem;
+    width: 100%;
+    justify-content: center;
+}
+
+.small-card {
+    width: 120px;
+    height: 160px;
+    background-color: #CAE9FF;
+    border-radius: 8px;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.arrow-container {
+    cursor: pointer;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Utils */
+.text-left {
+    text-align: left;
+    width: 100%;
+}
+
+.max-w-1000 {
+    max-width: 1000px;
+}
+
+.mx-auto {
+    margin: 0 auto;
+}
+
+.mb-2rem {
+    margin-bottom: 2rem;
+}
