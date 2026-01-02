@@ -1,145 +1,167 @@
 <?php
-require_once __DIR__ . '/Controller.php';
+require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../models/Bookshop.php';
-require_once __DIR__ . '/../utils/Response.php';
-require_once __DIR__ . '/../utils/Validator.php';
-require_once __DIR__ . '/../utils/Auth.php';
 
-class BookshopController extends Controller {
-    private $bookshop;
+class BookshopController {
+    private $conn;
 
     public function __construct($db) {
-        parent::__construct($db);
-        $this->bookshop = new Bookshop($db);
+        $this->conn = $db;
     }
 
+    // Bookshop CRUD
     public function getAll() {
-        $stmt = $this->bookshop->readAll();
-        $bookshops = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        Response::success("Bookshops fetched successfully", $bookshops);
+        $item = new Bookshop($this->conn);
+        $stmt = $item->readAll();
+        $itemCount = $stmt->rowCount();
+
+        if ($itemCount > 0) {
+            $arr = array("body" => array(), "itemCount" => $itemCount);
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                array_push($arr["body"], $row);
+            }
+            echo json_encode($arr);
+        } else {
+            http_response_code(404);
+            echo json_encode(array("message" => "No record found."));
+        }
     }
 
     public function getOne($id) {
-        if (!$id) Response::error("ID is required");
-        $bookshop = $this->bookshop->readOne($id);
-        if ($bookshop) {
-            Response::success("Bookshop fetched successfully", $bookshop);
+        $item = new Bookshop($this->conn);
+        $data = $item->readOne($id);
+        if ($data != null) {
+            http_response_code(200);
+            echo json_encode($data);
         } else {
-            Response::error("Bookshop not found", 404);
+            http_response_code(404);
+            echo json_encode("Bookshop not found.");
         }
     }
 
     public function create() {
-        Auth::validateToken();
-        $data = $this->getInput();
-        $errors = Validator::validateRequired($data, ['name', 'location']);
-
-        if (!empty($errors)) {
-            Response::error("Validation Error", 400, $errors);
+        $item = new Bookshop($this->conn);
+        $data = json_decode(file_get_contents("php://input"));
+        
+        if (empty($data->name)) {
+             http_response_code(400);
+             echo json_encode(array("message" => "Name is required."));
+             return;
         }
-        $data = Validator::sanitize($data);
 
-        if (!isset($data['country'])) $data['country'] = null;
+        $createData = [
+            'name' => $data->name,
+            'location' => isset($data->location) ? $data->location : null,
+            'country' => isset($data->country) ? $data->country : null,
+        ];
 
-        if ($this->bookshop->create($data)) {
-            Response::success("Bookshop created successfully", null, 201);
+        if ($item->create($createData)) {
+            http_response_code(201);
+            echo json_encode(array("message" => "Bookshop created successfully."));
         } else {
-            Response::error("Unable to create bookshop", 503);
+            http_response_code(500);
+            echo json_encode(array("message" => "Bookshop could not be created."));
         }
     }
 
     public function update($id) {
-        Auth::validateToken();
-        if (!$id) Response::error("ID is required");
-        $data = $this->getInput();
-        $data = Validator::sanitize($data);
+        $item = new Bookshop($this->conn);
+        $data = json_decode(file_get_contents("php://input"));
 
-        $existing = $this->bookshop->readOne($id);
-        if (!$existing) Response::error("Bookshop not found", 404);
-        
-        $fields = ['name', 'location', 'country'];
-        foreach ($fields as $field) {
-            if (!isset($data[$field])) $data[$field] = $existing[$field];
+        if (empty($data->name)) {
+             http_response_code(400);
+             echo json_encode(array("message" => "Name is required."));
+             return;
         }
 
-        if ($this->bookshop->update($id, $data)) {
-            Response::success("Bookshop updated successfully");
+        $updateData = [
+            'name' => $data->name,
+            'location' => isset($data->location) ? $data->location : null,
+            'country' => isset($data->country) ? $data->country : null,
+        ];
+
+        if ($item->update($id, $updateData)) {
+            http_response_code(200);
+            echo json_encode(array("message" => "Bookshop updated successfully."));
         } else {
-            Response::error("Unable to update bookshop", 503);
+            http_response_code(500);
+            echo json_encode(array("message" => "Data could not be updated."));
         }
     }
 
     public function delete($id) {
-        Auth::validateToken();
-        if (!$id) Response::error("ID is required");
-
-        if ($this->bookshop->delete($id)) {
-            Response::success("Bookshop deleted successfully");
+        $item = new Bookshop($this->conn);
+        if ($item->delete($id)) {
+            http_response_code(200);
+            echo json_encode(array("message" => "Bookshop deleted."));
         } else {
-            Response::error("Unable to delete bookshop", 503);
+            http_response_code(500);
+            echo json_encode(array("message" => "Data could not be deleted."));
         }
     }
 
-    public function getInventory($id) {
-        if (!$id) Response::error("Bookshop ID is required");
-        $stmt = $this->bookshop->getInventory($id);
-        $inventory = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        Response::success("Inventory fetched successfully", $inventory);
-    }
-    
-    public function addInventory($id) {
-        Auth::validateToken();
-        if (!$id) Response::error("Bookshop ID is required");
-        $data = $this->getInput();
-        // Updated requirement: stock_quantity, price
-        $errors = Validator::validateRequired($data, ['book_id', 'stock_quantity', 'price']);
-        
-        if (!empty($errors)) {
-            Response::error("Validation Error", 400, $errors);
-        }
-        
-        if ($this->bookshop->addInventory($id, $data['book_id'], $data['stock_quantity'], $data['price'])) {
-            Response::success("Inventory added successfully", null, 201);
-        } else {
-            Response::error("Unable to add inventory", 503);
-        }
-    }
-    
-    public function updateInventory() {
-        Auth::validateToken();
-        $data = $this->getInput();
-        // Since no inventory_id passed, we need bookshop_id and book_id
-        // We can pass them in body or query. Let's assume body to be consistent with add.
-        // Or params: ?id=SHOP_ID&book_id=BOOK_ID
-        // My router passes `id` (shop id). We need `book_id`.
-        
-        $bookshop_id = isset($_GET['id']) ? $_GET['id'] : null;
-        $book_id = isset($_GET['book_id']) ? $_GET['book_id'] : (isset($data['book_id']) ? $data['book_id'] : null);
-        
-        if (!$bookshop_id || !$book_id) Response::error("Bookshop ID and Book ID required");
-        
-        $errors = Validator::validateRequired($data, ['stock_quantity', 'price']);
-        if (!empty($errors)) Response::error("Validation Error", 400, $errors);
+    // Inventory Methods
+    public function getInventory($bookshop_id) {
+        $item = new Bookshop($this->conn);
+        $stmt = $item->getInventory($bookshop_id);
+        $itemCount = $stmt->rowCount();
 
-        if ($this->bookshop->updateInventory($bookshop_id, $book_id, $data['stock_quantity'], $data['price'])) {
-            Response::success("Inventory updated successfully");
+        $arr = array("body" => array(), "itemCount" => $itemCount);
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            array_push($arr["body"], $row);
+        }
+        echo json_encode($arr);
+    }
+
+    public function addInventory($bookshop_id) {
+        $item = new Bookshop($this->conn);
+        $data = json_decode(file_get_contents("php://input"));
+
+        if (!isset($data->book_id) || !isset($data->stock_quantity) || !isset($data->price)) {
+            http_response_code(400);
+            echo json_encode(array("message" => "Incomplete data. need book_id, stock_quantity, price"));
+            return;
+        }
+
+        if ($item->addInventory($bookshop_id, $data->book_id, $data->stock_quantity, $data->price)) {
+            http_response_code(201);
+            echo json_encode(array("message" => "Inventory added."));
         } else {
-             Response::error("Unable to update inventory", 503);
+            http_response_code(500);
+            echo json_encode(array("message" => "Could not add inventory."));
         }
     }
     
-    public function removeInventory() {
-        Auth::validateToken();
-        // Need bookshop_id ($id from router) and book_id
-        $bookshop_id = isset($_GET['id']) ? $_GET['id'] : null;
-        $book_id = isset($_GET['book_id']) ? $_GET['book_id'] : null;
+    public function updateInventory($bookshop_id, $book_id) {
+        $item = new Bookshop($this->conn);
+        $data = json_decode(file_get_contents("php://input"));
+         
+        // book_id is passed in URL usually for individual item update?
+        // Method signature: updateInventory($bookshop_id, $book_id, $stock, $price)
         
-        if (!$bookshop_id || !$book_id) Response::error("Bookshop ID and Book ID required");
-        
-        if ($this->bookshop->removeInventory($bookshop_id, $book_id)) {
-            Response::success("Inventory removed successfully");
+        if (!isset($data->stock_quantity) || !isset($data->price)) {
+            http_response_code(400);
+            echo json_encode(array("message" => "Incomplete data. Need stock_quantity, price."));
+            return;
+        }
+
+        if ($item->updateInventory($bookshop_id, $book_id, $data->stock_quantity, $data->price)) {
+            http_response_code(200);
+            echo json_encode(array("message" => "Inventory updated."));
         } else {
-             Response::error("Unable to remove inventory", 503);
+            http_response_code(500);
+            echo json_encode(array("message" => "Could not update inventory."));
+        }
+    }
+
+    public function removeInventory($bookshop_id, $book_id) {
+        $item = new Bookshop($this->conn);
+        if ($item->removeInventory($bookshop_id, $book_id)) {
+            http_response_code(200);
+            echo json_encode(array("message" => "Inventory removed."));
+        } else {
+            http_response_code(500);
+            echo json_encode(array("message" => "Could not remove inventory."));
         }
     }
 }

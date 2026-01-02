@@ -1,0 +1,60 @@
+import React from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import '../styles/Admin.css'; // We will create this
+
+const AdminLayout = ({ children }) => {
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const handleLogout = () => {
+        // Clear anything if needed (though we are using simple auth)
+        // localStorage.removeItem('adminToken'); 
+        navigate('/admin/login');
+    };
+
+    const menuItems = [
+        { path: '/admin/dashboard', label: 'Dashboard' },
+        { path: '/admin/authors', label: 'Authors' },
+        { path: '/admin/books', label: 'Books' },
+        { path: '/admin/ebooks', label: 'Ebooks' },
+        { path: '/admin/bookshops', label: 'Bookshops' },
+        { path: '/admin/publishers', label: 'Publishers' },
+        { path: '/admin/events', label: 'Events' },
+    ];
+
+    return (
+        <div className="admin-container">
+            {/* Sidebar */}
+            <aside className="admin-sidebar">
+                <div className="admin-logo">
+                    <h2>BookEchoes Admin</h2>
+                </div>
+                <nav className="admin-nav">
+                    <ul>
+                        {menuItems.map((item) => (
+                            <li key={item.path} className={location.pathname === item.path ? 'active' : ''}>
+                                <Link to={item.path}>{item.label}</Link>
+                            </li>
+                        ))}
+                    </ul>
+                </nav>
+                <div className="admin-logout">
+                    <button onClick={handleLogout}>Logout</button>
+                </div>
+            </aside>
+
+            {/* Main Content */}
+            <main className="admin-content">
+                <header className="admin-header">
+                    <h3>Administration Panel</h3>
+                    <div className="user-info">Admin User</div>
+                </header>
+                <div className="admin-page-content">
+                    {children}
+                </div>
+            </main>
+        </div>
+    );
+};
+
+export default AdminLayout;

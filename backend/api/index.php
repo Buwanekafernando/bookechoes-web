@@ -1,137 +1,185 @@
 <?php
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: GET,POST,PUT,DELETE");
+header("Access-Control-Allow-Methods: GET,POST,PUT,DELETE,OPTIONS");
 header("Access-Control-Max-Age: 3600");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-include_once '../config/Database.php';
-include_once '../utils/Response.php';
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
 
-// Instantiate DB
+require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/../middleware/AuthMiddleware.php';
+require_once __DIR__ . '/../controllers/AuthController.php';
+// We will require other controllers here as we implement them
+// require_once __DIR__ . '/../controllers/AuthorController.php';
+
 $database = new Database();
 $db = $database->getConnection();
 
-// Parse Request
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$uriSegments = explode('/', trim($uri, '/'));
+$uri = explode('/', $uri);
 
-// Adjust this based on your folder structure if needed. 
-// Assuming localhost/backend/api/index.php results in segments: [backend, api, entity]
-// If hosted at root, it might be different. 
-// Let's assume the last segment is the ID if numeric, and the one before is the entity.
-// OR we use query params ?resource=authors
-// Let's stick to a simple query param style for now: api/index.php?endpoint=authors
-// It is easier to configure without .htaccess on standard PHP setups.
+// URI Structure: /backend/api/index.php/resource OR /api/resource depending on server config
+// We assume access via something like http://localhost/bookechoes/backend/api/resource
+// So strict counting is risky. Let's find 'api' and look after it, or just look at last segments.
 
-$endpoint = isset($_GET['endpoint']) ? $_GET['endpoint'] : null;
-// Support clean URLs if rewrites are enabled, but fallback to query param
-if (!$endpoint && isset($uriSegments[2])) {
-    // This part is tricky without knowing the exact URL structure user will run. 
-    // I will check if $_GET['endpoint'] is passed via RewriteRule or direct param.
-}
+// Basic Router
+// If last segment is 'login', route to AuthController
+// If 'authors', route to AuthorController etc.
 
-if (!$endpoint) {
-    Response::error("No endpoint specified", 404);
-}
+$resource = null;
+$id = null;
 
-// Router Logic
-switch ($endpoint) {
-    case 'auth':
-        include_once '../controllers/AuthController.php';
-        $controller = new AuthController($db);
-        $action = isset($_GET['action']) ? $_GET['action'] : null;
-        if ($action == 'login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-            $controller->login();
-        } elseif ($action == 'register' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-            $controller->register();
-        } else {
-            Response::error("Invalid action or method", 405);
-        }
-        break;
+// Basic Router
+// If last segment is 'login', route to AuthController
 
-    case 'authors':
-        include_once '../controllers/AuthorController.php';
-        $controller = new AuthorController($db);
-        processRequest($controller);
-        break;
+// Helper to determine resource and ID
+// Examples: /backend/api/index.php/authors, /api/authors/5
+$resource = null;
+$id = null;
 
-    case 'publishers':
-        include_once '../controllers/PublisherController.php';
-        $controller = new PublisherController($db);
-        processRequest($controller);
-        break;
+// Filter out empty segments and 'index.php'
+$cleanUri = array_values(array_filter($uri, function($v) {
+    return $v !== '' && $v !== 'index.php' && $v !== 'api' && $v !== 'backend'; 
+}));
+// This strategy is risky if folder names change. 
+// Better strategy: Look at the end of the array.
 
-    case 'books':
-        include_once '../controllers/BookController.php';
-        $controller = new BookController($db);
-        processRequest($controller);
-        break;
+// Assuming structure is like: .../resource OR .../resource/id
+// Or .../resource/id/subresource/subid
 
-    case 'ebooks':
-        include_once '../controllers/EbookController.php';
-        $controller = new EbookController($db);
-        processRequest($controller);
-        break;
+$count = count($cleanUri);
 
-    case 'bookshops':
-        include_once '../controllers/BookshopController.php';
-        $controller = new BookshopController($db);
-        
-        // Custom routing for inventory actions
-        $action = isset($_GET['action']) ? $_GET['action'] : null;
-        if ($action == 'inventory' && $_SERVER['REQUEST_METHOD'] === 'GET') {
-            $id = isset($_GET['id']) ? $_GET['id'] : null;
-            $controller->getInventory($id);
-        } elseif ($action == 'add_inventory' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-             $id = isset($_GET['id']) ? $_GET['id'] : null;
-             $controller->addInventory($id);
-        } elseif ($action == 'update_inventory' && $_SERVER['REQUEST_METHOD'] === 'POST') { // PUT usually but simple POST action here
-             $controller->updateInventory();
-        } elseif ($action == 'remove_inventory' && $_SERVER['REQUEST_METHOD'] === 'DELETE') {
-             $controller->removeInventory();
-        } else {
-            processRequest($controller);
-        }
-        break;
-
-    case 'events':
-        include_once '../controllers/EventController.php';
-        $controller = new EventController($db);
-        processRequest($controller);
-        break;
-        
-    // Add other cases here...
-
-    default:
-        Response::error("Endpoint not found", 404);
-        break;
-}
-
-function processRequest($controller) {
-    $method = $_SERVER['REQUEST_METHOD'];
-    $id = isset($_GET['id']) ? $_GET['id'] : null;
-
-    switch ($method) {
-        case 'GET':
-            if ($id) {
-                $controller->getOne($id);
-            } else {
-                $controller->getAll();
+// Logic for inventory (nested)
+if ($count >= 3 && $cleanUri[$count-2] === 'inventory') {
+    // .../bookshops/1/inventory/5
+    // cleanUri: [..., bookshops, 1, inventory, 5]
+    $resource = 'bookshops'; // Main controller
+    // We will handle specific inventory parsing inside the block or here
+} elseif ($count >= 2 && $cleanUri[$count-1] === 'inventory') {
+    // .../bookshops/1/inventory
+    $resource = 'bookshops';
+} else {
+    // Standard Resource/ID
+    if ($count > 0) {
+        if (is_numeric($cleanUri[$count-1])) {
+            $id = $cleanUri[$count-1];
+            if ($count > 1) {
+                $resource = $cleanUri[$count-2];
             }
-            break;
-        case 'POST':
-            $controller->create();
-            break;
-        case 'PUT':
-            $controller->update($id);
-            break;
-        case 'DELETE':
-            $controller->delete($id);
-            break;
-        default:
-            Response::error("Method not allowed", 405);
-            break;
+        } else {
+            $resource = $cleanUri[$count-1];
+        }
     }
 }
+
+// Global Headers
+header("Access-Control-Allow-Origin: *");
+header("Content-Type: application/json; charset=UTF-8");
+
+// ROUTING
+
+if ($resource === 'login') {
+    $auth = new AuthController($db);
+    $auth->login();
+    exit();
+}
+
+// Author Routes
+if ($resource === 'authors') {
+    require_once __DIR__ . '/../controllers/AuthorController.php';
+    $controller = new AuthorController($db);
+    $method = $_SERVER['REQUEST_METHOD'];
+    
+    if ($method === 'GET') { if ($id) $controller->getOne($id); else $controller->getAll(); }
+    elseif ($method === 'POST') $controller->create();
+    elseif ($method === 'PUT') { if ($id) $controller->update($id); else http_response_code(400); }
+    elseif ($method === 'DELETE') { if ($id) $controller->delete($id); else http_response_code(400); }
+    exit();
+}
+
+// Book Routes
+if ($resource === 'books') {
+    require_once __DIR__ . '/../controllers/BookController.php';
+    $controller = new BookController($db);
+    $method = $_SERVER['REQUEST_METHOD'];
+    
+    if ($method === 'GET') { if ($id) $controller->getOne($id); else $controller->getAll(); }
+    elseif ($method === 'POST') $controller->create();
+    elseif ($method === 'PUT') { if ($id) $controller->update($id); else http_response_code(400); }
+    elseif ($method === 'DELETE') { if ($id) $controller->delete($id); else http_response_code(400); }
+    exit();
+}
+
+// Ebook Routes
+if ($resource === 'ebooks') {
+    require_once __DIR__ . '/../controllers/EbookController.php';
+    $controller = new EbookController($db);
+    $method = $_SERVER['REQUEST_METHOD'];
+    
+    if ($method === 'GET') { if ($id) $controller->getOne($id); else $controller->getAll(); }
+    elseif ($method === 'POST') $controller->create();
+    elseif ($method === 'PUT') { if ($id) $controller->update($id); else http_response_code(400); }
+    elseif ($method === 'DELETE') { if ($id) $controller->delete($id); else http_response_code(400); }
+    exit();
+}
+
+// Publisher Routes
+if ($resource === 'publishers') {
+    require_once __DIR__ . '/../controllers/PublisherController.php';
+    $controller = new PublisherController($db);
+    $method = $_SERVER['REQUEST_METHOD'];
+    
+    if ($method === 'GET') { if ($id) $controller->getOne($id); else $controller->getAll(); }
+    elseif ($method === 'POST') $controller->create();
+    elseif ($method === 'PUT') { if ($id) $controller->update($id); else http_response_code(400); }
+    elseif ($method === 'DELETE') { if ($id) $controller->delete($id); else http_response_code(400); }
+    exit();
+}
+
+// Bookshop Routes
+if ($resource === 'bookshops') {
+    require_once __DIR__ . '/../controllers/BookshopController.php';
+    $controller = new BookshopController($db);
+    $method = $_SERVER['REQUEST_METHOD'];
+
+    // Inventory check logic needs to use the URI segments we parsed or logic below
+    // simplified: assume inventory is handled if URL contains it
+    $isInventory = false;
+    $shopId = null;
+    $bookId = null;
+    
+    // Re-scanning cleanUri for 'inventory'
+    $invKey = array_search('inventory', $cleanUri);
+    if ($invKey !== false) {
+        $isInventory = true;
+        $shopId = isset($cleanUri[$invKey-1]) ? $cleanUri[$invKey-1] : null;
+        $bookId = isset($cleanUri[$invKey+1]) ? $cleanUri[$invKey+1] : null;
+    }
+
+    if ($isInventory && $shopId) {
+        if ($method === 'GET') {
+            $controller->getInventory($shopId);
+        } elseif ($method === 'POST') {
+            $controller->addInventory($shopId);
+        } elseif ($method === 'PUT') {
+            if ($bookId) $controller->updateInventory($shopId, $bookId); else http_response_code(400);
+        } elseif ($method === 'DELETE') {
+            if ($bookId) $controller->removeInventory($shopId, $bookId); else http_response_code(400);
+        }
+    } else {
+        if ($method === 'GET') { if ($id) $controller->getOne($id); else $controller->getAll(); }
+        elseif ($method === 'POST') $controller->create();
+        elseif ($method === 'PUT') { if ($id) $controller->update($id); else http_response_code(400); }
+        elseif ($method === 'DELETE') { if ($id) $controller->delete($id); else http_response_code(400); }
+    }
+    exit();
+}
+
+
+http_response_code(404);
+echo json_encode(array("message" => "Endpoint not found."));
 ?>

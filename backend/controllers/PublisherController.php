@@ -1,83 +1,101 @@
 <?php
-require_once __DIR__ . '/Controller.php';
+require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../models/Publisher.php';
-require_once __DIR__ . '/../utils/Response.php';
-require_once __DIR__ . '/../utils/Validator.php';
-require_once __DIR__ . '/../utils/Auth.php';
 
-class PublisherController extends Controller {
-    private $publisher;
+class PublisherController {
+    private $conn;
 
     public function __construct($db) {
-        parent::__construct($db);
-        $this->publisher = new Publisher($db);
+        $this->conn = $db;
     }
 
     public function getAll() {
-        $stmt = $this->publisher->readAll();
-        $publishers = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        Response::success("Publishers fetched successfully", $publishers);
+        $item = new Publisher($this->conn);
+        $stmt = $item->readAll();
+        $itemCount = $stmt->rowCount();
+
+        if ($itemCount > 0) {
+            $arr = array("body" => array(), "itemCount" => $itemCount);
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                array_push($arr["body"], $row);
+            }
+            echo json_encode($arr);
+        } else {
+            http_response_code(404);
+            echo json_encode(array("message" => "No record found."));
+        }
     }
 
     public function getOne($id) {
-        if (!$id) Response::error("ID is required");
-        $publisher = $this->publisher->readOne($id);
-        if ($publisher) {
-            Response::success("Publisher fetched successfully", $publisher);
+        $item = new Publisher($this->conn);
+        $data = $item->readOne($id);
+        if ($data != null) {
+            http_response_code(200);
+            echo json_encode($data);
         } else {
-            Response::error("Publisher not found", 404);
+            http_response_code(404);
+            echo json_encode("Publisher not found.");
         }
     }
 
     public function create() {
-        Auth::validateToken();
-        $data = $this->getInput();
-        $errors = Validator::validateRequired($data, ['name']); // others optional
-
-        if (!empty($errors)) {
-            Response::error("Validation Error", 400, $errors);
-        }
-        $data = Validator::sanitize($data);
+        $item = new Publisher($this->conn);
+        $data = json_decode(file_get_contents("php://input"));
         
-        if (!isset($data['country'])) $data['country'] = null;
-        if (!isset($data['website_url'])) $data['website_url'] = null;
+        if (empty($data->name)) {
+             http_response_code(400);
+             echo json_encode(array("message" => "Name is required."));
+             return;
+        }
 
-        if ($this->publisher->create($data)) {
-            Response::success("Publisher created successfully", null, 201);
+        $createData = [
+            'name' => $data->name,
+            'country' => isset($data->country) ? $data->country : null,
+            'website_url' => isset($data->website_url) ? $data->website_url : null,
+        ];
+
+        if ($item->create($createData)) {
+            http_response_code(201);
+            echo json_encode(array("message" => "Publisher created successfully."));
         } else {
-            Response::error("Unable to create publisher", 503);
+            http_response_code(500);
+            echo json_encode(array("message" => "Publisher could not be created."));
         }
     }
 
     public function update($id) {
-        Auth::validateToken();
-        if (!$id) Response::error("ID is required");
-        $data = $this->getInput();
-        $data = Validator::sanitize($data);
+        $item = new Publisher($this->conn);
+        $data = json_decode(file_get_contents("php://input"));
 
-        $existing = $this->publisher->readOne($id);
-        if (!$existing) Response::error("Publisher not found", 404);
-        
-        $fields = ['name', 'country', 'website_url'];
-        foreach ($fields as $field) {
-            if (!isset($data[$field])) $data[$field] = $existing[$field];
+        if (empty($data->name)) {
+             http_response_code(400);
+             echo json_encode(array("message" => "Name is required."));
+             return;
         }
 
-        if ($this->publisher->update($id, $data)) {
-            Response::success("Publisher updated successfully");
+        $updateData = [
+            'name' => $data->name,
+            'country' => isset($data->country) ? $data->country : null,
+            'website_url' => isset($data->website_url) ? $data->website_url : null,
+        ];
+
+        if ($item->update($id, $updateData)) {
+            http_response_code(200);
+            echo json_encode(array("message" => "Publisher updated successfully."));
         } else {
-            Response::error("Unable to update publisher", 503);
+            http_response_code(500);
+            echo json_encode(array("message" => "Data could not be updated."));
         }
     }
 
     public function delete($id) {
-        Auth::validateToken();
-        if (!$id) Response::error("ID is required");
-
-        if ($this->publisher->delete($id)) {
-            Response::success("Publisher deleted successfully");
+        $item = new Publisher($this->conn);
+        if ($item->delete($id)) {
+            http_response_code(200);
+            echo json_encode(array("message" => "Publisher deleted."));
         } else {
-            Response::error("Unable to delete publisher", 503);
+            http_response_code(500);
+            echo json_encode(array("message" => "Data could not be deleted."));
         }
     }
 }

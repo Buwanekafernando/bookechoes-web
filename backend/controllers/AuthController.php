@@ -1,47 +1,65 @@
 <?php
-require_once __DIR__ . '/Controller.php';
-require_once __DIR__ . '/../models/User.php';
-require_once __DIR__ . '/../utils/Response.php';
-require_once __DIR__ . '/../utils/Validator.php';
+require_once __DIR__ . '/../config/Database.php';
 
-class AuthController extends Controller {
-    private $user;
+class AuthController {
+    private $conn;
+    private $table_name = "users";
 
     public function __construct($db) {
-        parent::__construct($db);
-        $this->user = new User($db);
+        $this->conn = $db;
     }
 
     public function login() {
-        $data = $this->getInput();
-        $errors = Validator::validateRequired($data, ['email', 'password']);
-        
-        if (!empty($errors)) {
-            Response::error("Validation Error", 400, $errors);
+        $data = json_decode(file_get_contents("php://input"));
+
+        if (!isset($data->email) || !isset($data->password)) {
+            http_response_code(400);
+            echo json_encode(array("message" => "Incomplete login data."));
+            return;
         }
 
-        $loggedInUser = $this->user->login($data['email'], $data['password']);
+        $query = "SELECT id, username, email, password FROM " . $this->table_name . " WHERE email = ? LIMIT 0,1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(1, $data->email);
+        $stmt->execute();
 
-        if ($loggedInUser) {
-            Response::success("Login successful", $loggedInUser);
+        if ($stmt->rowCount() > 0) {
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            $password = $data->password;
+            $hashed_password = $row['password'];
+
+            if (password_verify($password, $hashed_password)) {
+                // Generate Token
+                $token = bin2hex(random_bytes(32));
+                
+                // Update Token in DB
+                $update_query = "UPDATE " . $this->table_name . " SET api_token = ? WHERE id = ?";
+                $update_stmt = $this->conn->prepare($update_query);
+                $update_stmt->bindParam(1, $token);
+                $update_stmt->bindParam(2, $row['id']);
+                
+                if ($update_stmt->execute()) {
+                    http_response_code(200);
+                    echo json_encode(array(
+                        "message" => "Login successful.",
+                        "token" => $token,
+                        "user" => array(
+                            "id" => $row['id'],
+                            "username" => $row['username'],
+                            "email" => $row['email']
+                        )
+                    ));
+                } else {
+                    http_response_code(500);
+                    echo json_encode(array("message" => "Unable to generate token."));
+                }
+            } else {
+                http_response_code(401);
+                echo json_encode(array("message" => "Invalid password."));
+            }
         } else {
-            Response::error("Invalid credentials", 401);
-        }
-    }
-
-    public function register() {
-        // Optional: Admin registration endpoint
-        $data = $this->getInput();
-        $errors = Validator::validateRequired($data, ['username', 'email', 'password']);
-
-        if (!empty($errors)) {
-            Response::error("Validation Error", 400, $errors);
-        }
-
-        if ($this->user->create($data['username'], $data['email'], $data['password'])) {
-            Response::success("User registered successfully");
-        } else {
-            Response::error("Unable to register user", 503);
+            http_response_code(401);
+            echo json_encode(array("message" => "User not found."));
         }
     }
 }

@@ -1,87 +1,121 @@
 <?php
-require_once __DIR__ . '/Controller.php';
+require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../models/Book.php';
-require_once __DIR__ . '/../utils/Response.php';
-require_once __DIR__ . '/../utils/Validator.php';
-require_once __DIR__ . '/../utils/Auth.php';
 
-class BookController extends Controller {
-    private $book;
+class BookController {
+    private $conn;
+    private $db_table = "Book";
 
     public function __construct($db) {
-        parent::__construct($db);
-        $this->book = new Book($db);
+        $this->conn = $db;
     }
 
     public function getAll() {
-        $stmt = $this->book->readAll();
-        $books = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        Response::success("Books fetched successfully", $books);
+        $item = new Book($this->conn);
+        $stmt = $item->readAll();
+        $itemCount = $stmt->rowCount();
+
+        if ($itemCount > 0) {
+            $bookArr = array();
+            $bookArr["body"] = array();
+            $bookArr["itemCount"] = $itemCount;
+
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                // Manually extracting or just pushing the row
+                // Since readAll returns author_name and publisher_name, we can just push row
+                array_push($bookArr["body"], $row);
+            }
+            echo json_encode($bookArr);
+        } else {
+            http_response_code(404);
+            echo json_encode(array("message" => "No record found."));
+        }
     }
 
     public function getOne($id) {
-        if (!$id) Response::error("ID is required");
-        $book = $this->book->readOne($id);
-        if ($book) {
-            Response::success("Book fetched successfully", $book);
+        $item = new Book($this->conn);
+        $data = $item->readOne($id);
+
+        if ($data != null) {
+            http_response_code(200);
+            echo json_encode($data);
         } else {
-            Response::error("Book not found", 404);
+            http_response_code(404);
+            echo json_encode("Book not found.");
         }
     }
 
     public function create() {
-        Auth::validateToken();
-        $data = $this->getInput();
-        // Validation: what is absolutely required? title, probably links.
-        $errors = Validator::validateRequired($data, ['title', 'author_id', 'publisher_id']);
-
-        if (!empty($errors)) {
-            Response::error("Validation Error", 400, $errors);
-        }
-        $data = Validator::sanitize($data);
-
-        // Fill optional
-        $fields = ['category', 'description', 'year_of_publish', 'number_of_chapters', 'language', 'image_url'];
-        foreach ($fields as $field) {
-            if (!isset($data[$field])) $data[$field] = null;
+        $item = new Book($this->conn);
+        $data = json_decode(file_get_contents("php://input"));
+        
+        if (empty($data->title)) {
+             http_response_code(400);
+             echo json_encode(array("message" => "Title is required."));
+             return;
         }
 
-        if ($this->book->create($data)) {
-            Response::success("Book created successfully", null, 201);
+        // Map data
+        $bookData = [
+            'title' => $data->title,
+            'category' => isset($data->category) ? $data->category : null,
+            'description' => isset($data->description) ? $data->description : null,
+            'year_of_publish' => isset($data->year_of_publish) ? $data->year_of_publish : null,
+            'number_of_chapters' => isset($data->number_of_chapters) ? $data->number_of_chapters : null,
+            'language' => isset($data->language) ? $data->language : null,
+            'image_url' => isset($data->image_url) ? $data->image_url : null,
+            'publisher_id' => isset($data->publisher_id) ? $data->publisher_id : null,
+            'author_id' => isset($data->author_id) ? $data->author_id : null,
+        ];
+
+        if ($item->create($bookData)) {
+            http_response_code(201);
+            echo json_encode(array("message" => "Book created successfully."));
         } else {
-            Response::error("Unable to create book", 503);
+            http_response_code(500);
+            echo json_encode(array("message" => "Book could not be created."));
         }
     }
 
     public function update($id) {
-        Auth::validateToken();
-        if (!$id) Response::error("ID is required");
-        $data = $this->getInput();
-        $data = Validator::sanitize($data);
-        
-        $existing = $this->book->readOne($id);
-        if (!$existing) Response::error("Book not found", 404);
-        
-        $fields = ['title', 'category', 'description', 'year_of_publish', 'number_of_chapters', 'language', 'image_url', 'publisher_id', 'author_id'];
-        foreach ($fields as $field) {
-            if (!isset($data[$field])) $data[$field] = $existing[$field];
-        }
+        $item = new Book($this->conn);
+        $data = json_decode(file_get_contents("php://input"));
 
-        if ($this->book->update($id, $data)) {
-            Response::success("Book updated successfully");
+        if (empty($data->title)) {
+             http_response_code(400);
+             echo json_encode(array("message" => "Title is required."));
+             return;
+        }
+        
+        $bookData = [
+            'title' => $data->title,
+            'category' => isset($data->category) ? $data->category : null,
+            'description' => isset($data->description) ? $data->description : null,
+            'year_of_publish' => isset($data->year_of_publish) ? $data->year_of_publish : null,
+            'number_of_chapters' => isset($data->number_of_chapters) ? $data->number_of_chapters : null,
+            'language' => isset($data->language) ? $data->language : null,
+            'image_url' => isset($data->image_url) ? $data->image_url : null,
+            'publisher_id' => isset($data->publisher_id) ? $data->publisher_id : null,
+            'author_id' => isset($data->author_id) ? $data->author_id : null,
+        ];
+
+        if ($item->update($id, $bookData)) {
+            http_response_code(200);
+            echo json_encode(array("message" => "Book updated successfully."));
         } else {
-            Response::error("Unable to update book", 503);
+            http_response_code(500);
+            echo json_encode(array("message" => "Data could not be updated."));
         }
     }
 
     public function delete($id) {
-        Auth::validateToken();
-        if (!$id) Response::error("ID is required");
-
-        if ($this->book->delete($id)) {
-            Response::success("Book deleted successfully");
+        $item = new Book($this->conn);
+        if ($item->delete($id)) {
+            http_response_code(200);
+            echo json_encode(array("message" => "Book deleted."));
         } else {
-            Response::error("Unable to delete book", 503);
+            http_response_code(500);
+            echo json_encode(array("message" => "Data could not be deleted."));
         }
     }
 }

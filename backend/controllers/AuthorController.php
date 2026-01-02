@@ -1,101 +1,139 @@
 <?php
-require_once __DIR__ . '/Controller.php';
+require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../models/Author.php';
-require_once __DIR__ . '/../utils/Response.php';
-require_once __DIR__ . '/../utils/Validator.php';
-require_once __DIR__ . '/../utils/Auth.php';
 
-class AuthorController extends Controller {
-    private $author;
+class AuthorController {
+    private $conn;
+    private $db_table = "Author";
 
     public function __construct($db) {
-        parent::__construct($db);
-        $this->author = new Author($db);
+        $this->conn = $db;
     }
 
     public function getAll() {
-        $stmt = $this->author->readAll();
-        $authors = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        Response::success("Authors fetched successfully", $authors);
+        $item = new Author($this->conn);
+        $stmt = $item->readAll();
+        $itemCount = $stmt->rowCount();
+
+        if ($itemCount > 0) {
+            $authorArr = array();
+            $authorArr["body"] = array();
+            $authorArr["itemCount"] = $itemCount;
+
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                extract($row);
+                $e = array(
+                    "author_id" => $author_id,
+                    "name" => $name,
+                    "country" => $country,
+                    "no_of_books_published" => $no_of_books_published,
+                    "about" => $about,
+                    "website_url" => $website_url,
+                    "socialmedia_url" => $socialmedia_url,
+                    "image_url" => $image_url
+                );
+                array_push($authorArr["body"], $e);
+            }
+            echo json_encode($authorArr);
+        } else {
+            http_response_code(404);
+            echo json_encode(array("message" => "No record found."));
+        }
     }
 
     public function getOne($id) {
-        if (!$id) Response::error("ID is required");
-        
-        $author = $this->author->readOne($id);
-        if ($author) {
-            Response::success("Author fetched successfully", $author);
+        $item = new Author($this->conn);
+        $date = $item->readOne($id);
+
+        if ($date != null) {
+            // Create array
+            $emp_arr = array(
+                "author_id" =>  $date['author_id'],
+                "name" => $date['name'],
+                "country" => $date['country'],
+                "no_of_books_published" => $date['no_of_books_published'],
+                "about" => $date['about'],
+                "website_url" => $date['website_url'],
+                "socialmedia_url" => $date['socialmedia_url'],
+                "image_url" => $date['image_url']
+            );
+            http_response_code(200);
+            echo json_encode($emp_arr);
         } else {
-            Response::error("Author not found", 404);
+            http_response_code(404);
+            echo json_encode("Author not found.");
         }
     }
 
     public function create() {
-        Auth::validateToken(); // Protected endpoint
+        $item = new Author($this->conn);
+        $data = json_decode(file_get_contents("php://input"));
         
-        $data = $this->getInput();
-        $errors = Validator::validateRequired($data, ['name']); 
-
-        if (!empty($errors)) {
-            Response::error("Validation Error", 400, $errors);
+        // Basic validation
+        if (empty($data->name)) {
+             http_response_code(400);
+             echo json_encode(array("message" => "Name is required."));
+             return;
         }
 
-        // Sanitize
-        $data = Validator::sanitize($data);
+        // Mapping
+        $authorData = [
+            'name' => $data->name,
+            'country' => isset($data->country) ? $data->country : null,
+            'no_of_books_published' => isset($data->no_of_books_published) ? $data->no_of_books_published : 0,
+            'about' => isset($data->about) ? $data->about : null,
+            'website_url' => isset($data->website_url) ? $data->website_url : null,
+            'socialmedia_url' => isset($data->socialmedia_url) ? $data->socialmedia_url : null,
+            'image_url' => isset($data->image_url) ? $data->image_url : null,
+        ];
 
-        // Fill optional fields with null/defaults if missing to avoid index errors, or let DB handle it.
-        // Best practice: ensure array keys exist
-        $fields = ['country', 'no_of_books_published', 'about', 'website_url', 'socialmedia_url', 'image_url'];
-        foreach ($fields as $field) {
-            if (!isset($data[$field])) $data[$field] = null;
-        }
-
-        if ($this->author->create($data)) {
-            Response::success("Author created successfully", null, 201);
+        if ($item->create($authorData)) {
+            http_response_code(201);
+            echo json_encode(array("message" => "Author created successfully."));
         } else {
-            Response::error("Unable to create author", 503);
+            http_response_code(500);
+            echo json_encode(array("message" => "Author could not be created."));
         }
     }
 
     public function update($id) {
-        Auth::validateToken(); // Protected endpoint
-        
-        if (!$id) Response::error("ID is required");
-        
-        $data = $this->getInput();
-        $data = Validator::sanitize($data);
-        
-        $fields = ['name', 'country', 'no_of_books_published', 'about', 'website_url', 'socialmedia_url', 'image_url'];
-        // For update, we might want to fetch existing first or just update what's passed?
-        // Simpler for now: Expect all fields or merge with existing. 
-        // Let's assume the frontend sends the full object. If not, we should merge.
-        // For this task, I'll just fill defaults if missing, which might overwrite with empty.
-        // Ideally: Fetch -> Merge -> Update.
-        
-        $existing = $this->author->readOne($id);
-        if (!$existing) Response::error("Author not found", 404);
-        
-        foreach ($fields as $field) {
-            if (!isset($data[$field])) {
-                $data[$field] = $existing[$field];
-            }
+        $item = new Author($this->conn);
+        $data = json_decode(file_get_contents("php://input"));
+
+        if (empty($data->name)) {
+             http_response_code(400);
+             echo json_encode(array("message" => "Name is required."));
+             return;
         }
 
-        if ($this->author->update($id, $data)) {
-            Response::success("Author updated successfully");
+        $authorData = [
+            'name' => $data->name,
+            'country' => isset($data->country) ? $data->country : null,
+            'no_of_books_published' => isset($data->no_of_books_published) ? $data->no_of_books_published : 0,
+            'about' => isset($data->about) ? $data->about : null,
+            'website_url' => isset($data->website_url) ? $data->website_url : null,
+            'socialmedia_url' => isset($data->socialmedia_url) ? $data->socialmedia_url : null,
+            'image_url' => isset($data->image_url) ? $data->image_url : null,
+        ];
+
+        if ($item->update($id, $authorData)) {
+            http_response_code(200);
+            echo json_encode(array("message" => "Author updated successfully."));
         } else {
-            Response::error("Unable to update author", 503);
+            http_response_code(500);
+            echo json_encode(array("message" => "Data could not be updated."));
         }
     }
 
     public function delete($id) {
-        Auth::validateToken(); // Protected endpoint
-        if (!$id) Response::error("ID is required");
-
-        if ($this->author->delete($id)) {
-            Response::success("Author deleted successfully");
+        $item = new Author($this->conn);
+        
+        if ($item->delete($id)) {
+            http_response_code(200);
+            echo json_encode(array("message" => "Author deleted."));
         } else {
-            Response::error("Unable to delete author", 503);
+            http_response_code(500);
+            echo json_encode(array("message" => "Data could not be deleted."));
         }
     }
 }
