@@ -6,12 +6,18 @@ class Bookshop extends Model {
     protected $primary_key = "bookshop_id";
 
     public function create($data) {
-        $query = "INSERT INTO " . $this->table_name . " (name, location, country) VALUES (?, ?, ?)";
+        $query = "INSERT INTO " . $this->table_name . " 
+                  (name, location, country, description, image_url, status) 
+                  VALUES (?, ?, ?, ?, ?, ?)";
         $stmt = $this->conn->prepare($query);
 
         $stmt->bindParam(1, $data['name']);
         $stmt->bindParam(2, $data['location']);
         $stmt->bindParam(3, $data['country']);
+        $stmt->bindParam(4, $data['description']);
+        $stmt->bindParam(5, $data['image_url']);
+        $status = $data['status'] ?? 'published';
+        $stmt->bindParam(6, $status);
 
         if($stmt->execute()) {
             return true;
@@ -20,13 +26,19 @@ class Bookshop extends Model {
     }
 
     public function update($id, $data) {
-        $query = "UPDATE " . $this->table_name . " SET name = ?, location = ?, country = ? WHERE " . $this->primary_key . " = ?";
+        $query = "UPDATE " . $this->table_name . " 
+                  SET name = ?, location = ?, country = ?, description = ?, image_url = ?, status = ? 
+                  WHERE " . $this->primary_key . " = ?";
         $stmt = $this->conn->prepare($query);
 
         $stmt->bindParam(1, $data['name']);
         $stmt->bindParam(2, $data['location']);
         $stmt->bindParam(3, $data['country']);
-        $stmt->bindParam(4, $id);
+        $stmt->bindParam(4, $data['description']);
+        $stmt->bindParam(5, $data['image_url']);
+        $status = $data['status'] ?? 'published';
+        $stmt->bindParam(6, $status);
+        $stmt->bindParam(7, $id);
 
         if($stmt->execute()) {
             return true;
@@ -43,55 +55,6 @@ class Bookshop extends Model {
             return true;
         }
         return false;
-    }
-    
-    // Inventory Management Methods
-    // Table: Bookshop_Books (bookshop_id, book_id, stock_quantity, price)
-    // Note: No 'id' PK mentioned by user. Assuming composite key (bookshop_id, book_id) 
-    // OR just inserting/deleting by pair.
-    // If I need to update, I'll update by pair.
-    
-    public function getInventory($bookshop_id) {
-        $query = "SELECT bb.*, b.title 
-                  FROM Bookshop_Books bb
-                  JOIN Book b ON bb.book_id = b.book_id
-                  WHERE bb.bookshop_id = ?";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $bookshop_id);
-        $stmt->execute();
-        return $stmt;
-    }
-    
-    public function addInventory($bookshop_id, $book_id, $stock, $price) {
-        // Check if exists first? Or Insert on duplicate update?
-        // Let's assume unique constraint on pair.
-        // However, standard insert for now.
-        $query = "INSERT INTO Bookshop_Books (bookshop_id, book_id, stock_quantity, price) VALUES (?, ?, ?, ?)";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $bookshop_id);
-        $stmt->bindParam(2, $book_id);
-        $stmt->bindParam(3, $stock);
-        $stmt->bindParam(4, $price);
-        return $stmt->execute();
-    }
-    
-    public function updateInventory($bookshop_id, $book_id, $stock, $price) {
-        // Since no simple 'id' provided in description, updating by composite key.
-        $query = "UPDATE Bookshop_Books SET stock_quantity = ?, price = ? WHERE bookshop_id = ? AND book_id = ?";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $stock);
-        $stmt->bindParam(2, $price);
-        $stmt->bindParam(3, $bookshop_id);
-        $stmt->bindParam(4, $book_id);
-        return $stmt->execute();
-    }
-    
-    public function removeInventory($bookshop_id, $book_id) {
-        $query = "DELETE FROM Bookshop_Books WHERE bookshop_id = ? AND book_id = ?";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $bookshop_id);
-        $stmt->bindParam(2, $book_id);
-        return $stmt->execute();
     }
 }
 ?>

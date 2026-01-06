@@ -13,8 +13,8 @@ class Author extends Model {
     // Create
     public function create($data) {
         $query = "INSERT INTO " . $this->table_name . " 
-                  (name, country, no_of_books_published, about, website_url, socialmedia_url, image_url) 
-                  VALUES (?, ?, ?, ?, ?, ?, ?)";
+                  (name, country, no_of_books_published, about, website_url, socialmedia_url, image_url, status) 
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $this->conn->prepare($query);
 
         $stmt->bindParam(1, $data['name']);
@@ -24,6 +24,8 @@ class Author extends Model {
         $stmt->bindParam(5, $data['website_url']);
         $stmt->bindParam(6, $data['socialmedia_url']);
         $stmt->bindParam(7, $data['image_url']);
+        $status = $data['status'] ?? 'published';
+        $stmt->bindParam(8, $status);
 
         if($stmt->execute()) {
             return true;
@@ -34,7 +36,7 @@ class Author extends Model {
     // Update
     public function update($id, $data) {
         $query = "UPDATE " . $this->table_name . " 
-                  SET name = ?, country = ?, no_of_books_published = ?, about = ?, website_url = ?, socialmedia_url = ?, image_url = ? 
+                  SET name = ?, country = ?, no_of_books_published = ?, about = ?, website_url = ?, socialmedia_url = ?, image_url = ?, status = ? 
                   WHERE " . $this->primary_key . " = ?";
         $stmt = $this->conn->prepare($query);
 
@@ -45,7 +47,9 @@ class Author extends Model {
         $stmt->bindParam(5, $data['website_url']);
         $stmt->bindParam(6, $data['socialmedia_url']);
         $stmt->bindParam(7, $data['image_url']);
-        $stmt->bindParam(8, $id);
+        $status = $data['status'] ?? 'published';
+        $stmt->bindParam(8, $status);
+        $stmt->bindParam(9, $id);
 
         if($stmt->execute()) {
             return true;
