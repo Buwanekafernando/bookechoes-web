@@ -125,7 +125,20 @@ if ($resource === 'ebooks') {
     elseif ($method === 'DELETE') { if ($id) $controller->delete($id); else http_response_code(400); }
     exit();
 }
-
+// AI Ingestion Routes
+if ($resource === 'ai') {
+    require_once __DIR__ . '/../controllers/AIController.php';
+    $controller = new AIController($db);
+    $method = $_SERVER['REQUEST_METHOD'];
+    
+    if ($method === 'POST' && isset($_GET['action']) && $_GET['action'] === 'ingest') {
+        $controller->ingest();
+    } else {
+        http_response_code(400);
+        echo json_encode(['message' => 'Invalid action']);
+    }
+    exit();
+}
 // Publisher Routes
 if ($resource === 'publishers') {
     require_once __DIR__ . '/../controllers/PublisherController.php';

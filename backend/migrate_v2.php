@@ -38,5 +38,12 @@ addColumnIfNotExists($db, 'Bookshops', 'description', "TEXT"); // Ensure descrip
 addColumnIfNotExists($db, 'Book_Events', 'image_url', "VARCHAR(255)");
 addColumnIfNotExists($db, 'Book_Events', 'description', "TEXT");
 
+// 3. Add 'image_url' and 'status' to Publisher
+addColumnIfNotExists($db, 'Publisher', 'image_url', "VARCHAR(255)");
+addColumnIfNotExists($db, 'Publisher', 'status', "ENUM('draft', 'published') DEFAULT 'draft'");
+
+// 4. Add 'status' to Ebook
+addColumnIfNotExists($db, 'Ebook', 'status', "ENUM('draft', 'published') DEFAULT 'draft'");
+
 echo "Migration Completed.\n";
 ?>

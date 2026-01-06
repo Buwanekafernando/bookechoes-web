@@ -119,5 +119,19 @@ class GeminiService {
         }";
         return $this->callGemini($prompt);
     }
+
+    public function fetchNews() {
+        $prompt = "Generate a JSON array of 5 recent literary news articles related to books, authors, and publishing.
+        Structure:
+        {
+            \"title\": \"string\",
+            \"summary\": \"string\",
+            \"source\": \"string\",
+            \"url\": \"string\",
+            \"date_published\": \"YYYY-MM-DD\",
+            \"image_url\": \"string (if available, else empty)\"
+        }";
+        return $this->callGemini($prompt);
+    }
 }
 ?>

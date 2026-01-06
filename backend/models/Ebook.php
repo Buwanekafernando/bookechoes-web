@@ -34,8 +34,8 @@ class Ebook extends Model {
 
     public function create($data) {
         $query = "INSERT INTO " . $this->table_name . " 
-                  (name, category, description, year_of_publish, language, number_of_chapters, image_url, author_id) 
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                  (name, category, description, year_of_publish, language, number_of_chapters, image_url, author_id, status) 
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $this->conn->prepare($query);
 
         $stmt->bindParam(1, $data['name']);
@@ -46,6 +46,8 @@ class Ebook extends Model {
         $stmt->bindParam(6, $data['number_of_chapters']);
         $stmt->bindParam(7, $data['image_url']);
         $stmt->bindParam(8, $data['author_id']);
+        $status = $data['status'] ?? 'published';
+        $stmt->bindParam(9, $status);
 
         if($stmt->execute()) {
             return true;
@@ -55,7 +57,7 @@ class Ebook extends Model {
 
     public function update($id, $data) {
         $query = "UPDATE " . $this->table_name . " 
-                  SET name = ?, category = ?, description = ?, year_of_publish = ?, language = ?, number_of_chapters = ?, image_url = ?, author_id = ? 
+                  SET name = ?, category = ?, description = ?, year_of_publish = ?, language = ?, number_of_chapters = ?, image_url = ?, author_id = ?, status = ? 
                   WHERE " . $this->primary_key . " = ?";
         $stmt = $this->conn->prepare($query);
 
@@ -67,7 +69,9 @@ class Ebook extends Model {
         $stmt->bindParam(6, $data['number_of_chapters']);
         $stmt->bindParam(7, $data['image_url']);
         $stmt->bindParam(8, $data['author_id']);
-        $stmt->bindParam(9, $id);
+        $status = $data['status'] ?? 'published';
+        $stmt->bindParam(9, $status);
+        $stmt->bindParam(10, $id);
 
         if($stmt->execute()) {
             return true;

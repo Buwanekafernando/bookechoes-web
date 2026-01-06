@@ -5,6 +5,8 @@ require_once __DIR__ . '/../models/Author.php';
 require_once __DIR__ . '/../models/Publisher.php';
 require_once __DIR__ . '/../models/Bookshop.php';
 require_once __DIR__ . '/../models/BookEvent.php';
+require_once __DIR__ . '/../models/Ebook.php';
+require_once __DIR__ . '/../middleware/AuthMiddleware.php';
 
 class AIController {
     private $conn;
@@ -14,18 +16,27 @@ class AIController {
     }
 
     public function ingest() {
+        // Authenticate user
+        $auth = new AuthMiddleware($this->conn);
+        $user = $auth->authenticate();
+        if (!$user) {
+            http_response_code(401);
+            echo json_encode(['message' => 'Unauthorized']);
+            return;
+        }
+
         // Get type from query params
         $type = isset($_GET['type']) ? $_GET['type'] : null;
         $topic = isset($_GET['topic']) ? $_GET['topic'] : null;
 
         if (!$type) {
             http_response_code(400);
-            echo json_encode(['message' => 'Type parameter required (books, authors, bookshops, events)']);
+            echo json_encode(['message' => 'Type parameter required (books, authors, bookshops, events, ebooks, news)']);
             return;
         }
 
         // Determine which API key to use
-        $serviceType = ($type === 'events') ? 'events' : 'general';
+        $serviceType = ($type === 'events' || $type === 'news') ? 'events' : 'general';
         $gemini = new GeminiService($serviceType);
 
         $result = [];
@@ -64,6 +75,22 @@ class AIController {
                         throw new Exception($data['error']);
                     }
                     $result = $this->ingestEvents($data);
+                    break;
+
+                case 'ebooks':
+                    $data = $gemini->fetchBooks($topic ?? 'latest ebooks'); // Reuse fetchBooks for ebooks
+                    if (isset($data['error'])) {
+                        throw new Exception($data['error']);
+                    }
+                    $result = $this->ingestEbooks($data);
+                    break;
+
+                case 'news':
+                    $data = $gemini->fetchNews();
+                    if (isset($data['error'])) {
+                        throw new Exception($data['error']);
+                    }
+                    $result = $this->ingestNews($data);
                     break;
 
                 default:
@@ -133,6 +160,14 @@ class AIController {
 
         foreach ($authors as $authorData) {
             try {
+                // Check if author exists
+                $query = "SELECT author_id FROM Author WHERE name = ? LIMIT 1";
+                $stmt = $this->conn->prepare($query);
+                $stmt->execute([$authorData['name'] ?? '']);
+                if ($stmt->fetch()) {
+                    continue; // Skip if exists
+                }
+
                 $authorModel = new Author($this->conn);
                 $data = [
                     'name' => $authorData['name'] ?? 'Unknown',
@@ -164,6 +199,14 @@ class AIController {
 
         foreach ($bookshops as $shopData) {
             try {
+                // Check if bookshop exists
+                $query = "SELECT bookshop_id FROM Bookshops WHERE name = ? LIMIT 1";
+                $stmt = $this->conn->prepare($query);
+                $stmt->execute([$shopData['name'] ?? '']);
+                if ($stmt->fetch()) {
+                    continue; // Skip if exists
+                }
+
                 $shopModel = new Bookshop($this->conn);
                 $data = [
                     'name' => $shopData['name'] ?? 'Unknown',
@@ -193,6 +236,14 @@ class AIController {
 
         foreach ($events as $eventData) {
             try {
+                // Check if event exists
+                $query = "SELECT book_event_id FROM Book_Events WHERE name = ? LIMIT 1";
+                $stmt = $this->conn->prepare($query);
+                $stmt->execute([$eventData['name'] ?? '']);
+                if ($stmt->fetch()) {
+                    continue; // Skip if exists
+                }
+
                 $eventModel = new BookEvent($this->conn);
                 $data = [
                     'name' => $eventData['name'] ?? 'Unknown Event',
@@ -217,7 +268,47 @@ class AIController {
         return ['inserted' => $inserted, 'errors' => $errors];
     }
 
-    private function findOrCreateAuthor($authorData) {
+    private function ingestEbooks($ebooks) {
+        $inserted = 0;
+        $errors = [];
+        
+        foreach ($ebooks as $ebookData) {
+            try {
+                // First, ensure author exists
+                $authorId = $this->findOrCreateAuthor($ebookData['author'] ?? []);
+
+                // Create ebook
+                $ebookModel = new Ebook($this->conn);
+                $data = [
+                    'name' => $ebookData['title'] ?? 'Untitled',
+                    'category' => $ebookData['category'] ?? 'General',
+                    'description' => $ebookData['description'] ?? '',
+                    'year_of_publish' => $ebookData['year_of_publish'] ?? date('Y'),
+                    'number_of_chapters' => $ebookData['number_of_chapters'] ?? 0,
+                    'language' => $ebookData['language'] ?? 'English',
+                    'image_url' => $ebookData['image_url'] ?? '',
+                    'author_id' => $authorId,
+                    'status' => 'draft'
+                ];
+
+                if ($ebookModel->create($data)) {
+                    $inserted++;
+                } else {
+                    $errors[] = 'Failed to insert ebook: ' . ($ebookData['title'] ?? 'Unknown');
+                }
+            } catch (Exception $e) {
+                $errors[] = 'Error processing ebook: ' . $e->getMessage();
+            }
+        }
+
+        return ['inserted' => $inserted, 'errors' => $errors];
+    }
+
+    private function ingestNews($news) {
+        // For news, just return the data since no table to store
+        // In future, could store in a news table
+        return ['inserted' => count($news), 'errors' => [], 'data' => $news];
+    }
         if (empty($authorData['name'])) {
             return null;
         }
@@ -275,6 +366,7 @@ class AIController {
             'name' => $publisherData['name'],
             'country' => $publisherData['country'] ?? '',
             'website_url' => $publisherData['website_url'] ?? '',
+            'image_url' => $publisherData['image_url'] ?? '',
             'status' => 'draft'
         ];
 
