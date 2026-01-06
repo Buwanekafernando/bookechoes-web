@@ -32,34 +32,35 @@ const AdminDashboard = () => {
             setIngestionMessage('Network error during ingestion.');
         }
     };
-    const fetchStats = async () => {
-        try {
-            const headers = getAuthHeaders();
-            // We'll fetch all listing endpoints to get counts. 
-            // For a production app, we'd want a specific /stats endpoint to avoid data transfer overhead.
-            const [booksRes, authorsRes, ebooksRes, shopsRes] = await Promise.all([
-                fetch('http://localhost/backend/api/index.php/books', { headers }),
-                fetch('http://localhost/backend/api/index.php/authors', { headers }),
-                fetch('http://localhost/backend/api/index.php/ebooks', { headers }),
-                fetch('http://localhost/backend/api/index.php/bookshops', { headers })
-            ]);
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const headers = getAuthHeaders();
+                // We'll fetch all listing endpoints to get counts. 
+                // For a production app, we'd want a specific /stats endpoint to avoid data transfer overhead.
+                const [booksRes, authorsRes, ebooksRes, shopsRes] = await Promise.all([
+                    fetch('http://localhost/backend/api/index.php/books', { headers }),
+                    fetch('http://localhost/backend/api/index.php/authors', { headers }),
+                    fetch('http://localhost/backend/api/index.php/ebooks', { headers }),
+                    fetch('http://localhost/backend/api/index.php/bookshops', { headers })
+                ]);
 
-            const books = await booksRes.json();
-            const authors = await authorsRes.json();
-            const ebooks = await ebooksRes.json();
-            const shops = await shopsRes.json();
+                const books = await booksRes.json();
+                const authors = await authorsRes.json();
+                const ebooks = await ebooksRes.json();
+                const shops = await shopsRes.json();
 
-            setStats({
-                books: books.body ? books.body.length : 0,
-                authors: authors.body ? authors.body.length : 0,
-                ebooks: ebooks.body ? ebooks.body.length : 0,
-                bookshops: shops.body ? shops.body.length : 0
-            });
+                setStats({
+                    books: books.body ? books.body.length : 0,
+                    authors: authors.body ? authors.body.length : 0,
+                    ebooks: ebooks.body ? ebooks.body.length : 0,
+                    bookshops: shops.body ? shops.body.length : 0
+                });
 
-        } catch (error) {
-            console.error("Failed to fetch dashboard stats", error);
-        }
-    };
+            } catch (error) {
+                console.error("Failed to fetch dashboard stats", error);
+            }
+        };
 
         fetchStats();
     }, []);
