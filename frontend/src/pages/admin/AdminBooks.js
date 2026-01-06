@@ -22,16 +22,22 @@ const AdminBooks = () => {
 
     const API_BASE = "http://localhost/backend/api/index.php";
 
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem('adminToken');
+        return token ? { 'Authorization': `Bearer ${token}` } : {};
+    };
+
     useEffect(() => {
         fetchData();
     }, []);
 
     const fetchData = async () => {
         try {
+            const headers = getAuthHeaders();
             const [booksRes, authorsRes, pubsRes] = await Promise.all([
-                fetch(`${API_BASE}/books`),
-                fetch(`${API_BASE}/authors`),
-                fetch(`${API_BASE}/publishers`)
+                fetch(`${API_BASE}/books`, { headers }),
+                fetch(`${API_BASE}/authors`, { headers }),
+                fetch(`${API_BASE}/publishers`, { headers })
             ]);
 
             const booksData = await booksRes.json();
@@ -50,7 +56,10 @@ const AdminBooks = () => {
 
     const handleDelete = async (id) => {
         if (window.confirm("Are you sure you want to delete this book?")) {
-            await fetch(`${API_BASE}/books/${id}`, { method: 'DELETE' });
+            await fetch(`${API_BASE}/books/${id}`, { 
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
             fetchData();
         }
     };
@@ -86,7 +95,10 @@ const AdminBooks = () => {
 
         const res = await fetch(url, {
             method,
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                ...getAuthHeaders()
+            },
             body: JSON.stringify(formData)
         });
 

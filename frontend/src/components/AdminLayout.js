@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import '../styles/Admin.css'; // We will create this
 
@@ -6,9 +6,15 @@ const AdminLayout = ({ children }) => {
     const navigate = useNavigate();
     const location = useLocation();
 
+    useEffect(() => {
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+            navigate('/admin/login');
+        }
+    }, [navigate]);
+
     const handleLogout = () => {
-        // Clear anything if needed (though we are using simple auth)
-        // localStorage.removeItem('adminToken'); 
+        localStorage.removeItem('adminToken');
         navigate('/admin/login');
     };
 

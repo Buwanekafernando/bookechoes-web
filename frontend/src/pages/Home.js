@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaArrowRight, FaArrowDown } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
 import '../styles/Home.css';
 
 const Home = () => {
@@ -49,6 +50,9 @@ const Home = () => {
                     >
                         BOOKECHOES
                     </motion.h1>
+                    <div style={{ position: 'absolute', top: '20px', right: '20px' }}>
+                        <Link to="/admin" style={{ color: 'white', textDecoration: 'none', fontSize: '14px' }}>Admin</Link>
+                    </div>
                 </div>
 
                 {/* The White Semi-Circle Hill Overlay */}

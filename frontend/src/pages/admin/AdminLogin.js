@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../../styles/Admin.css';
 
@@ -8,33 +8,43 @@ const AdminLogin = () => {
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
-    // Use absolute URL if relying on default port 80 setup from verify step, 
-    // OR relative if verify_apis said http://localhost/backend...
-    // Let's assume relative path /backend/api/index.php if proxy is set or we fetch absolute.
-    // Better to use the URL we verified: http://localhost/backend/api/index.php
     const API_URL = "http://localhost/backend/api/index.php";
+
+    useEffect(() => {
+        // Check if already logged in
+        const token = localStorage.getItem('adminToken');
+        if (token) {
+            navigate('/admin/dashboard');
+        }
+    }, [navigate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
 
-        // Simple bypass for testing if user wants "link open" style
-        // But let's try the real verify first
         try {
-            // We removed Auth check in backend, so strictly speaking "Login" isn't needed for Token.
-            // But we need to know IF credentials are valid if we kept that endpoint active?
-            // The verify script showed "Login checks disabled".
-            // So we can just redirect.
+            const response = await fetch(`${API_URL}/auth`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: email,
+                    password: password,
+                }),
+            });
 
-            // However, it's nice to simulate a secure feeling.
-            if (email === 'admin@example.com' && password === 'password123') {
+            const data = await response.json();
+
+            if (response.ok && data.token) {
+                // Store token
+                localStorage.setItem('adminToken', data.token);
                 navigate('/admin/dashboard');
             } else {
-                setError('Invalid credentials (try admin@example.com / password123)');
+                setError(data.message || 'Login failed');
             }
-
         } catch (err) {
-            setError('Login failed. Please try again.');
+            setError('Network error. Please try again.');
         }
     };
 
