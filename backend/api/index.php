@@ -45,25 +45,16 @@ $id = null;
 $cleanUri = array_values(array_filter($uri, function($v) {
     return $v !== '' && $v !== 'index.php' && $v !== 'api' && $v !== 'backend'; 
 }));
-// This strategy is risky if folder names change. 
-// Better strategy: Look at the end of the array.
 
-// Assuming structure is like: .../resource OR .../resource/id
-// Or .../resource/id/subresource/subid
 
 $count = count($cleanUri);
 
 // Logic for inventory (nested)
 if ($count >= 3 && $cleanUri[$count-2] === 'inventory') {
-    // .../bookshops/1/inventory/5
-    // cleanUri: [..., bookshops, 1, inventory, 5]
-    $resource = 'bookshops'; // Main controller
-    // We will handle specific inventory parsing inside the block or here
+    $resource = 'bookshops';
 } elseif ($count >= 2 && $cleanUri[$count-1] === 'inventory') {
-    // .../bookshops/1/inventory
     $resource = 'bookshops';
 } else {
-    // Standard Resource/ID
     if ($count > 0) {
         if (is_numeric($cleanUri[$count-1])) {
             $id = $cleanUri[$count-1];
@@ -76,13 +67,21 @@ if ($count >= 3 && $cleanUri[$count-2] === 'inventory') {
     }
 }
 
+
+if (!$resource && isset($_GET['endpoint'])) {
+    $resource = $_GET['endpoint'];
+    if (isset($_GET['id'])) {
+        $id = $_GET['id'];
+    }
+}
+
 // Global Headers
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 
 // ROUTING
 
-if ($resource === 'login') {
+if ($resource === 'login' || $resource === 'auth') {
     $auth = new AuthController($db);
     $auth->login();
     exit();
@@ -146,13 +145,10 @@ if ($resource === 'bookshops') {
     $controller = new BookshopController($db);
     $method = $_SERVER['REQUEST_METHOD'];
 
-    // Inventory check logic needs to use the URI segments we parsed or logic below
-    // simplified: assume inventory is handled if URL contains it
     $isInventory = false;
     $shopId = null;
     $bookId = null;
     
-    // Re-scanning cleanUri for 'inventory'
     $invKey = array_search('inventory', $cleanUri);
     if ($invKey !== false) {
         $isInventory = true;
