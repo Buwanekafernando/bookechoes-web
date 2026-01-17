@@ -4,6 +4,11 @@
 - **PHP** installed and in your system PATH (test by running `php -v` in terminal).
 - **MySQL** running (configured in `config/Database.php`).
 
+## 1.1. Database
+Open Xampp Control Panel and start the MySQL service.
+go to http://localhost/phpmyadmin
+then click bookdb
+
 ## 2. Configuration
 Check `config/Database.php` to ensure it matches your local database credentials:
 ```php
