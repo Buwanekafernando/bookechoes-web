@@ -2,7 +2,7 @@
 require_once __DIR__ . '/Model.php';
 
 class Ebook extends Model {
-    protected $table_name = "Ebook";
+    protected $table_name = "ebook";
     protected $primary_key = "ebook_id";
 
     public function readAll() {
@@ -15,7 +15,7 @@ class Ebook extends Model {
         
         $query = "SELECT e.*, a.name as author_name
                   FROM " . $this->table_name . " e
-                  LEFT JOIN Author a ON e.author_id = a.author_id";
+                  LEFT JOIN author a ON e.author_id = a.author_id";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
         return $stmt;
@@ -24,7 +24,7 @@ class Ebook extends Model {
     public function readOne($id) {
         $query = "SELECT e.*, a.name as author_name
                   FROM " . $this->table_name . " e
-                  LEFT JOIN Author a ON e.author_id = a.author_id
+                  LEFT JOIN author a ON e.author_id = a.author_id
                   WHERE e." . $this->primary_key . " = ? LIMIT 0,1";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(1, $id);

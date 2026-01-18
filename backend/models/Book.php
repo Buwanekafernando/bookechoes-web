@@ -2,7 +2,7 @@
 require_once __DIR__ . '/Model.php';
 
 class Book extends Model {
-    protected $table_name = "Book";
+    protected $table_name = "book";
     protected $primary_key = "book_id";
 
     // Override readAll to include Author and Publisher names
@@ -10,8 +10,8 @@ class Book extends Model {
     public function readAll() {
         $query = "SELECT b.*, a.name as author_name, p.name as publisher_name 
                   FROM " . $this->table_name . " b
-                  LEFT JOIN Author a ON b.author_id = a.author_id
-                  LEFT JOIN Publisher p ON b.publisher_id = p.publisher_id";
+                  LEFT JOIN author a ON b.author_id = a.author_id
+                  LEFT JOIN publisher p ON b.publisher_id = p.publisher_id";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
         return $stmt;
@@ -20,8 +20,8 @@ class Book extends Model {
     public function readOne($id) {
         $query = "SELECT b.*, a.name as author_name, p.name as publisher_name 
                   FROM " . $this->table_name . " b
-                  LEFT JOIN Author a ON b.author_id = a.author_id
-                  LEFT JOIN Publisher p ON b.publisher_id = p.publisher_id
+                  LEFT JOIN author a ON b.author_id = a.author_id
+                  LEFT JOIN publisher p ON b.publisher_id = p.publisher_id
                   WHERE b." . $this->primary_key . " = ? LIMIT 0,1";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(1, $id);

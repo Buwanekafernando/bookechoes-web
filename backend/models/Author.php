@@ -2,12 +2,7 @@
 require_once __DIR__ . '/Model.php';
 
 class Author extends Model {
-    protected $table_name = "Author"; // User specified table name (Capitalized?) I'll use exactly what they said if case sensitive, but usually lowercase in code. Let's assume lowercase for safety unless Windows. User wrote "Author". I'll try to stick to "authors" if they just meant the entity, but "Author" implies table name. I will check previous create table. The user said "these are the table structure i have created". I should use their casing if possible or standard. I will use 'authors' assuming they mapped it standardly, but if they strictly want 'Author', I might need to check. Let's stick to standard lowercase table names 'authors' unless I get an error, but actually I should update to their column names first. 
-    // Wait, user wrote "Author - ...". I'll assume table name is `Author`.
-    protected $table_name_s = "Author"; // Just to be safe? No, let's look at the previous setup_db. It used `authors`. I will update to `Author` to match their description perfectly? 
-    // "these are the table sturcture i have created in the phpmyadmin... Author"
-    // Okay, I will use `Author` as table name.
-    
+    protected $table_name = "author";
     protected $primary_key = "author_id";
 
     // Create

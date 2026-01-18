@@ -2,7 +2,7 @@
 require_once __DIR__ . '/Model.php';
 
 class Publisher extends Model {
-    protected $table_name = "Publisher";
+    protected $table_name = "publisher";
     protected $primary_key = "publisher_id";
 
     public function create($data) {
