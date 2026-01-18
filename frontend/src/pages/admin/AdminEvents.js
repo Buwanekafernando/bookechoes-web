@@ -1,23 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/AdminLayout';
 
-const AdminAuthors = () => {
-    const [authors, setAuthors] = useState([]);
+const AdminEvents = () => {
+    const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
-    const [editingAuthor, setEditingAuthor] = useState(null);
+    const [editingEvent, setEditingEvent] = useState(null);
 
     const [formData, setFormData] = useState({
         name: '',
-        country: '',
-        no_of_books_published: 0,
-        about: '',
-        website_url: '',
-        socialmedia_url: '',
+        location: '',
+        description: '',
+        date_start: '',
+        date_end: '',
         image_url: ''
     });
 
-    const API_URL = "http://localhost/backend/api/index.php/authors";
+    const API_URL = "http://localhost/backend/api/index.php/events";
 
     const getAuthHeaders = () => {
         const token = localStorage.getItem('adminToken');
@@ -25,63 +24,62 @@ const AdminAuthors = () => {
     };
 
     useEffect(() => {
-        fetchAuthors();
+        fetchEvents();
     }, []);
 
-    const fetchAuthors = async () => {
+    const fetchEvents = async () => {
         try {
             const response = await fetch(API_URL, { headers: getAuthHeaders() });
             const data = await response.json();
             if (data.body) {
-                setAuthors(data.body);
+                setEvents(data.body);
             } else {
-                setAuthors([]);
+                setEvents([]);
             }
         } catch (error) {
-            console.error("Error fetching authors:", error);
+            console.error("Error fetching events:", error);
         } finally {
             setLoading(false);
         }
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm("Are you sure you want to delete this author?")) {
+        if (window.confirm("Are you sure you want to delete this event?")) {
             try {
-                await fetch(`${API_URL}/${id}`, {
+                const res = await fetch(`${API_URL}/${id}`, {
                     method: 'DELETE',
                     headers: getAuthHeaders()
                 });
-                fetchAuthors();
+                if (res.ok) fetchEvents();
             } catch (error) {
                 console.error("Error deleting:", error);
             }
         }
     };
 
-    const handleEdit = (author) => {
-        setEditingAuthor(author);
+    const handleEdit = (event) => {
+        setEditingEvent(event);
         setFormData({
-            name: author.name,
-            country: author.country || '',
-            no_of_books_published: author.no_of_books_published || 0,
-            about: author.about || '',
-            website_url: author.website_url || '',
-            socialmedia_url: author.socialmedia_url || '',
-            image_url: author.image_url || ''
+            name: event.name,
+            location: event.location,
+            description: event.description || '',
+            date_start: event.date_start ? event.date_start.split(' ')[0] : '', // Format for date input
+            date_end: event.date_end ? event.date_end.split(' ')[0] : '',
+            image_url: event.image_url || ''
         });
         setShowModal(true);
     };
 
     const handleAddNew = () => {
-        setEditingAuthor(null);
-        setFormData({ name: '', country: '', no_of_books_published: 0, about: '', website_url: '', socialmedia_url: '', image_url: '' });
+        setEditingEvent(null);
+        setFormData({ name: '', location: '', description: '', date_start: '', date_end: '', image_url: '' });
         setShowModal(true);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const method = editingAuthor ? 'PUT' : 'POST';
-        const url = editingAuthor ? `${API_URL}/${editingAuthor.author_id}` : API_URL;
+        const method = editingEvent ? 'PUT' : 'POST';
+        const url = editingEvent ? `${API_URL}/${editingEvent.book_event_id}` : API_URL;
 
         const res = await fetch(url, {
             method,
@@ -94,17 +92,18 @@ const AdminAuthors = () => {
 
         if (res.ok) {
             setShowModal(false);
-            fetchAuthors();
+            fetchEvents();
         } else {
-            alert("Failed to save author.");
+            const err = await res.json();
+            alert("Failed to save event: " + (err.message || "Unknown error"));
         }
     };
 
     return (
         <AdminLayout>
             <div className="dashboard-header">
-                <h1>Manage Authors</h1>
-                <button className="btn-primary" onClick={handleAddNew}>+ Add Author</button>
+                <h1>Manage Events</h1>
+                <button className="btn-primary" onClick={handleAddNew}>+ Add Event</button>
             </div>
 
             <div className="table-container">
@@ -114,26 +113,26 @@ const AdminAuthors = () => {
                             <tr>
                                 <th>ID</th>
                                 <th>Name</th>
-                                <th>Books</th>
-                                <th>Country</th>
+                                <th>Location</th>
+                                <th>Start Date</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {authors.map((author) => (
-                                <tr key={author.author_id}>
-                                    <td>{author.author_id}</td>
+                            {events.map(event => (
+                                <tr key={event.book_event_id}>
+                                    <td>{event.book_event_id}</td>
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            {author.image_url && <img src={author.image_url} alt="" style={{ width: '30px', height: '30px', borderRadius: '50%', objectFit: 'cover' }} />}
-                                            {author.name}
+                                            {event.image_url && <img src={event.image_url} alt="" style={{ width: '40px', height: '25px', objectFit: 'cover' }} />}
+                                            {event.name}
                                         </div>
                                     </td>
-                                    <td>{author.no_of_books_published}</td>
-                                    <td>{author.country}</td>
+                                    <td>{event.location}</td>
+                                    <td>{event.date_start}</td>
                                     <td className="actions-cell">
-                                        <button className="btn-edit" onClick={() => handleEdit(author)}>Edit</button>
-                                        <button className="btn-delete" onClick={() => handleDelete(author.author_id)}>Delete</button>
+                                        <button className="btn-edit" onClick={() => handleEdit(event)}>Edit</button>
+                                        <button className="btn-delete" onClick={() => handleDelete(event.book_event_id)}>Delete</button>
                                     </td>
                                 </tr>
                             ))}
@@ -146,33 +145,31 @@ const AdminAuthors = () => {
                 <div className="modal-overlay">
                     <div className="modal">
                         <div className="modal-header">
-                            <h2>{editingAuthor ? 'Edit Author' : 'Add New Author'}</h2>
+                            <h2>{editingEvent ? 'Edit Event' : 'Add New Event'}</h2>
                             <button className="close-btn" onClick={() => setShowModal(false)}>&times;</button>
                         </div>
                         <form onSubmit={handleSubmit}>
                             <div className="form-group">
-                                <label>Name</label>
+                                <label>Event Name</label>
                                 <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required />
                             </div>
                             <div className="form-group">
-                                <label>Country</label>
-                                <input type="text" value={formData.country} onChange={e => setFormData({ ...formData, country: e.target.value })} />
+                                <label>Location</label>
+                                <input type="text" value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} required />
+                            </div>
+                            <div style={{ display: 'flex', gap: '20px' }}>
+                                <div className="form-group" style={{ flex: 1 }}>
+                                    <label>Start Date</label>
+                                    <input type="date" value={formData.date_start} onChange={e => setFormData({ ...formData, date_start: e.target.value })} required />
+                                </div>
+                                <div className="form-group" style={{ flex: 1 }}>
+                                    <label>End Date</label>
+                                    <input type="date" value={formData.date_end} onChange={e => setFormData({ ...formData, date_end: e.target.value })} />
+                                </div>
                             </div>
                             <div className="form-group">
-                                <label>No of Books Published</label>
-                                <input type="number" value={formData.no_of_books_published} onChange={e => setFormData({ ...formData, no_of_books_published: e.target.value })} />
-                            </div>
-                            <div className="form-group">
-                                <label>About</label>
-                                <textarea value={formData.about} onChange={e => setFormData({ ...formData, about: e.target.value })} rows="3"></textarea>
-                            </div>
-                            <div className="form-group">
-                                <label>Website URL</label>
-                                <input type="url" value={formData.website_url} onChange={e => setFormData({ ...formData, website_url: e.target.value })} />
-                            </div>
-                            <div className="form-group">
-                                <label>Social Media URL</label>
-                                <input type="url" value={formData.socialmedia_url} onChange={e => setFormData({ ...formData, socialmedia_url: e.target.value })} />
+                                <label>Description</label>
+                                <textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} rows="3"></textarea>
                             </div>
                             <div className="form-group">
                                 <label>Image URL</label>
@@ -180,7 +177,7 @@ const AdminAuthors = () => {
                             </div>
                             <div className="modal-footer">
                                 <button type="button" onClick={() => setShowModal(false)} style={{ padding: '10px', background: '#eee', border: 'none' }}>Cancel</button>
-                                <button type="submit" className="btn-primary">Save Author</button>
+                                <button type="submit" className="btn-primary">Save Event</button>
                             </div>
                         </form>
                     </div>
@@ -190,4 +187,4 @@ const AdminAuthors = () => {
     );
 };
 
-export default AdminAuthors;
+export default AdminEvents;

@@ -1,23 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/AdminLayout';
 
-const AdminAuthors = () => {
-    const [authors, setAuthors] = useState([]);
+const AdminPublishers = () => {
+    const [publishers, setPublishers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
-    const [editingAuthor, setEditingAuthor] = useState(null);
+    const [editingPublisher, setEditingPublisher] = useState(null);
 
     const [formData, setFormData] = useState({
         name: '',
         country: '',
-        no_of_books_published: 0,
-        about: '',
-        website_url: '',
-        socialmedia_url: '',
-        image_url: ''
+        website_url: ''
     });
 
-    const API_URL = "http://localhost/backend/api/index.php/authors";
+    const API_URL = "http://localhost/backend/api/index.php/publishers";
 
     const getAuthHeaders = () => {
         const token = localStorage.getItem('adminToken');
@@ -25,63 +21,59 @@ const AdminAuthors = () => {
     };
 
     useEffect(() => {
-        fetchAuthors();
+        fetchPublishers();
     }, []);
 
-    const fetchAuthors = async () => {
+    const fetchPublishers = async () => {
         try {
             const response = await fetch(API_URL, { headers: getAuthHeaders() });
             const data = await response.json();
             if (data.body) {
-                setAuthors(data.body);
+                setPublishers(data.body);
             } else {
-                setAuthors([]);
+                setPublishers([]);
             }
         } catch (error) {
-            console.error("Error fetching authors:", error);
+            console.error("Error fetching publishers:", error);
         } finally {
             setLoading(false);
         }
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm("Are you sure you want to delete this author?")) {
+        if (window.confirm("Are you sure you want to delete this publisher?")) {
             try {
-                await fetch(`${API_URL}/${id}`, {
+                const res = await fetch(`${API_URL}/${id}`, {
                     method: 'DELETE',
                     headers: getAuthHeaders()
                 });
-                fetchAuthors();
+                if (res.ok) fetchPublishers();
             } catch (error) {
                 console.error("Error deleting:", error);
             }
         }
     };
 
-    const handleEdit = (author) => {
-        setEditingAuthor(author);
+    const handleEdit = (publisher) => {
+        setEditingPublisher(publisher);
         setFormData({
-            name: author.name,
-            country: author.country || '',
-            no_of_books_published: author.no_of_books_published || 0,
-            about: author.about || '',
-            website_url: author.website_url || '',
-            socialmedia_url: author.socialmedia_url || '',
-            image_url: author.image_url || ''
+            name: publisher.name,
+            country: publisher.country || '',
+            website_url: publisher.website_url || ''
         });
         setShowModal(true);
     };
 
     const handleAddNew = () => {
-        setEditingAuthor(null);
-        setFormData({ name: '', country: '', no_of_books_published: 0, about: '', website_url: '', socialmedia_url: '', image_url: '' });
+        setEditingPublisher(null);
+        setFormData({ name: '', country: '', website_url: '' });
         setShowModal(true);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const method = editingAuthor ? 'PUT' : 'POST';
-        const url = editingAuthor ? `${API_URL}/${editingAuthor.author_id}` : API_URL;
+        const method = editingPublisher ? 'PUT' : 'POST';
+        const url = editingPublisher ? `${API_URL}/${editingPublisher.publisher_id}` : API_URL;
 
         const res = await fetch(url, {
             method,
@@ -94,17 +86,17 @@ const AdminAuthors = () => {
 
         if (res.ok) {
             setShowModal(false);
-            fetchAuthors();
+            fetchPublishers();
         } else {
-            alert("Failed to save author.");
+            alert("Failed to save publisher.");
         }
     };
 
     return (
         <AdminLayout>
             <div className="dashboard-header">
-                <h1>Manage Authors</h1>
-                <button className="btn-primary" onClick={handleAddNew}>+ Add Author</button>
+                <h1>Manage Publishers</h1>
+                <button className="btn-primary" onClick={handleAddNew}>+ Add Publisher</button>
             </div>
 
             <div className="table-container">
@@ -114,26 +106,23 @@ const AdminAuthors = () => {
                             <tr>
                                 <th>ID</th>
                                 <th>Name</th>
-                                <th>Books</th>
                                 <th>Country</th>
+                                <th>Website</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {authors.map((author) => (
-                                <tr key={author.author_id}>
-                                    <td>{author.author_id}</td>
+                            {publishers.map(pub => (
+                                <tr key={pub.publisher_id}>
+                                    <td>{pub.publisher_id}</td>
+                                    <td>{pub.name}</td>
+                                    <td>{pub.country}</td>
                                     <td>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            {author.image_url && <img src={author.image_url} alt="" style={{ width: '30px', height: '30px', borderRadius: '50%', objectFit: 'cover' }} />}
-                                            {author.name}
-                                        </div>
+                                        {pub.website_url && <a href={pub.website_url} target="_blank" rel="noopener noreferrer">Visit</a>}
                                     </td>
-                                    <td>{author.no_of_books_published}</td>
-                                    <td>{author.country}</td>
                                     <td className="actions-cell">
-                                        <button className="btn-edit" onClick={() => handleEdit(author)}>Edit</button>
-                                        <button className="btn-delete" onClick={() => handleDelete(author.author_id)}>Delete</button>
+                                        <button className="btn-edit" onClick={() => handleEdit(pub)}>Edit</button>
+                                        <button className="btn-delete" onClick={() => handleDelete(pub.publisher_id)}>Delete</button>
                                     </td>
                                 </tr>
                             ))}
@@ -146,7 +135,7 @@ const AdminAuthors = () => {
                 <div className="modal-overlay">
                     <div className="modal">
                         <div className="modal-header">
-                            <h2>{editingAuthor ? 'Edit Author' : 'Add New Author'}</h2>
+                            <h2>{editingPublisher ? 'Edit Publisher' : 'Add New Publisher'}</h2>
                             <button className="close-btn" onClick={() => setShowModal(false)}>&times;</button>
                         </div>
                         <form onSubmit={handleSubmit}>
@@ -159,28 +148,12 @@ const AdminAuthors = () => {
                                 <input type="text" value={formData.country} onChange={e => setFormData({ ...formData, country: e.target.value })} />
                             </div>
                             <div className="form-group">
-                                <label>No of Books Published</label>
-                                <input type="number" value={formData.no_of_books_published} onChange={e => setFormData({ ...formData, no_of_books_published: e.target.value })} />
-                            </div>
-                            <div className="form-group">
-                                <label>About</label>
-                                <textarea value={formData.about} onChange={e => setFormData({ ...formData, about: e.target.value })} rows="3"></textarea>
-                            </div>
-                            <div className="form-group">
                                 <label>Website URL</label>
                                 <input type="url" value={formData.website_url} onChange={e => setFormData({ ...formData, website_url: e.target.value })} />
                             </div>
-                            <div className="form-group">
-                                <label>Social Media URL</label>
-                                <input type="url" value={formData.socialmedia_url} onChange={e => setFormData({ ...formData, socialmedia_url: e.target.value })} />
-                            </div>
-                            <div className="form-group">
-                                <label>Image URL</label>
-                                <input type="text" value={formData.image_url} onChange={e => setFormData({ ...formData, image_url: e.target.value })} />
-                            </div>
                             <div className="modal-footer">
                                 <button type="button" onClick={() => setShowModal(false)} style={{ padding: '10px', background: '#eee', border: 'none' }}>Cancel</button>
-                                <button type="submit" className="btn-primary">Save Author</button>
+                                <button type="submit" className="btn-primary">Save Publisher</button>
                             </div>
                         </form>
                     </div>
@@ -190,4 +163,4 @@ const AdminAuthors = () => {
     );
 };
 
-export default AdminAuthors;
+export default AdminPublishers;
