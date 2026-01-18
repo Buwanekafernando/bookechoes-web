@@ -95,8 +95,11 @@ const AdminPublishers = () => {
     return (
         <AdminLayout>
             <div className="dashboard-header">
-                <h1>Manage Publishers</h1>
-                <button className="btn-primary" onClick={handleAddNew}>+ Add Publisher</button>
+                <div>
+                    <h1>Manage Publishers</h1>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Manage book publishing partners and entities.</p>
+                </div>
+                <button className="btn-primary" onClick={handleAddNew}>+ Add New Publisher</button>
             </div>
 
             <div className="table-container">
@@ -152,7 +155,7 @@ const AdminPublishers = () => {
                                 <input type="url" value={formData.website_url} onChange={e => setFormData({ ...formData, website_url: e.target.value })} />
                             </div>
                             <div className="modal-footer">
-                                <button type="button" onClick={() => setShowModal(false)} style={{ padding: '10px', background: '#eee', border: 'none' }}>Cancel</button>
+                                <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
                                 <button type="submit" className="btn-primary">Save Publisher</button>
                             </div>
                         </form>

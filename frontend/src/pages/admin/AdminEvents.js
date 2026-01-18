@@ -102,8 +102,11 @@ const AdminEvents = () => {
     return (
         <AdminLayout>
             <div className="dashboard-header">
-                <h1>Manage Events</h1>
-                <button className="btn-primary" onClick={handleAddNew}>+ Add Event</button>
+                <div>
+                    <h1>Manage Events</h1>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Schedule and manage literary events and book launches.</p>
+                </div>
+                <button className="btn-primary" onClick={handleAddNew}>+ Add New Event</button>
             </div>
 
             <div className="table-container">
@@ -176,7 +179,7 @@ const AdminEvents = () => {
                                 <input type="text" value={formData.image_url} onChange={e => setFormData({ ...formData, image_url: e.target.value })} />
                             </div>
                             <div className="modal-footer">
-                                <button type="button" onClick={() => setShowModal(false)} style={{ padding: '10px', background: '#eee', border: 'none' }}>Cancel</button>
+                                <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
                                 <button type="submit" className="btn-primary">Save Event</button>
                             </div>
                         </form>

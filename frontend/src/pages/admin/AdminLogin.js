@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../../styles/Admin.css';
+import logo from '../../assets/logo-be.png';
 
 const AdminLogin = () => {
     const [email, setEmail] = useState('');
@@ -51,7 +52,11 @@ const AdminLogin = () => {
     return (
         <div className="login-container">
             <form className="login-form" onSubmit={handleSubmit}>
-                <h2>Admin Login</h2>
+                <div className="login-branding">
+                    <img src={logo} alt="BookEchoes Logo" />
+                    <h2>BookEchoes</h2>
+                    <p>Administration Portal</p>
+                </div>
                 {error && <div style={{ color: 'red', marginBottom: '10px', textAlign: 'center' }}>{error}</div>}
                 <div className="form-group">
                     <label>Email Address</label>

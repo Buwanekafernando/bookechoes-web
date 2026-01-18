@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import '../styles/Admin.css'; // We will create this
+import '../styles/Admin.css';
+import logo from '../assets/logo-be.png';
 
 const AdminLayout = ({ children }) => {
     const navigate = useNavigate();
@@ -33,7 +34,8 @@ const AdminLayout = ({ children }) => {
             {/* Sidebar */}
             <aside className="admin-sidebar">
                 <div className="admin-logo">
-                    <h2>BookEchoes Admin</h2>
+                    <img src={logo} alt="BookEchoes Logo" />
+                    <h2>BookEchoes</h2>
                 </div>
                 <nav className="admin-nav">
                     <ul>

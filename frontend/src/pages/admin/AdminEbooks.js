@@ -99,8 +99,11 @@ const AdminEbooks = () => {
     return (
         <AdminLayout>
             <div className="dashboard-header">
-                <h1>Manage Ebooks</h1>
-                <button className="btn-primary" onClick={handleAddNew}>+ Add Ebook</button>
+                <div>
+                    <h1>Manage Ebooks</h1>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Digital catalog and ebook management.</p>
+                </div>
+                <button className="btn-primary" onClick={handleAddNew}>+ Add New Ebook</button>
             </div>
 
             <div className="table-container">
@@ -180,7 +183,7 @@ const AdminEbooks = () => {
                                 <input type="text" value={formData.image_url} onChange={e => setFormData({ ...formData, image_url: e.target.value })} />
                             </div>
                             <div className="modal-footer">
-                                <button type="button" onClick={() => setShowModal(false)} style={{ padding: '10px', background: '#eee', border: 'none' }}>Cancel</button>
+                                <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
                                 <button type="submit" className="btn-primary">Save Ebook</button>
                             </div>
                         </form>

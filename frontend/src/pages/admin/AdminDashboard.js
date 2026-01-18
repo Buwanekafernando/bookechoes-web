@@ -73,53 +73,61 @@ const AdminDashboard = () => {
 
     return (
         <AdminLayout>
-            <h1>Dashboard Overview</h1>
-            <p>Welcome to the BookEchoes Administration Panel.</p>
-
-            <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginTop: '30px' }}>
-                <div className="card" style={{ padding: '20px', background: 'white', borderLeft: '5px solid #2b6cb0', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                    <h3 style={{ margin: '0 0 10px 0', fontSize: '1rem', color: '#4a5568' }}>Total Books</h3>
-                    <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0, color: '#2d3748' }}>{stats.books}</p>
-                </div>
-
-                <div className="card" style={{ padding: '20px', background: 'white', borderLeft: '5px solid #4A5D23', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                    <h3 style={{ margin: '0 0 10px 0', fontSize: '1rem', color: '#4a5568' }}>Total Authors</h3>
-                    <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0, color: '#2d3748' }}>{stats.authors}</p>
-                </div>
-
-                <div className="card" style={{ padding: '20px', background: 'white', borderLeft: '5px solid #d69e2e', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                    <h3 style={{ margin: '0 0 10px 0', fontSize: '1rem', color: '#4a5568' }}>Total Ebooks</h3>
-                    <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0, color: '#2d3748' }}>{stats.ebooks}</p>
-                </div>
-
-                <div className="card" style={{ padding: '20px', background: 'white', borderLeft: '5px solid #e53e3e', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                    <h3 style={{ margin: '0 0 10px 0', fontSize: '1rem', color: '#4a5568' }}>Bookshops</h3>
-                    <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0, color: '#2d3748' }}>{stats.bookshops}</p>
-                </div>
-
-                <div className="card" style={{ padding: '20px', background: 'white', borderLeft: '5px solid #38b2ac', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                    <h3 style={{ margin: '0 0 10px 0', fontSize: '1rem', color: '#4a5568' }}>Publishers</h3>
-                    <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0, color: '#2d3748' }}>{stats.publishers}</p>
-                </div>
-
-                <div className="card" style={{ padding: '20px', background: 'white', borderLeft: '5px solid #805ad5', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                    <h3 style={{ margin: '0 0 10px 0', fontSize: '1rem', color: '#4a5568' }}>Events</h3>
-                    <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0, color: '#2d3748' }}>{stats.events}</p>
+            <div className="dashboard-header">
+                <div>
+                    <h1>Dashboard Overview</h1>
+                    <p style={{ color: 'var(--text-muted)', marginTop: '5px' }}>Welcome to the BookEchoes Administration Portal.</p>
                 </div>
             </div>
 
-            <div style={{ marginTop: '40px' }}>
+            <div className="stats-grid">
+                <div className="stat-card books">
+                    <div className="stat-label">Total Books</div>
+                    <div className="stat-value">{stats.books}</div>
+                </div>
+
+                <div className="stat-card authors">
+                    <div className="stat-label">Total Authors</div>
+                    <div className="stat-value">{stats.authors}</div>
+                </div>
+
+                <div className="stat-card ebooks">
+                    <div className="stat-label">Total Ebooks</div>
+                    <div className="stat-value">{stats.ebooks}</div>
+                </div>
+
+                <div className="stat-card shops">
+                    <div className="stat-label">Bookshops</div>
+                    <div className="stat-value">{stats.bookshops}</div>
+                </div>
+
+                <div className="stat-card publishers">
+                    <div className="stat-label">Publishers</div>
+                    <div className="stat-value">{stats.publishers}</div>
+                </div>
+
+                <div className="stat-card events">
+                    <div className="stat-label">Events</div>
+                    <div className="stat-value">{stats.events}</div>
+                </div>
+            </div>
+
+            <div className="ingestion-section">
                 <h2>AI Data Ingestion</h2>
                 <p>Use Gemini AI to fetch and enrich data from the internet.</p>
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                    <button onClick={() => handleIngestion('books')} style={{ padding: '10px 20px', background: '#2b6cb0', color: 'white', border: 'none', borderRadius: '5px' }}>Ingest Books</button>
-                    <button onClick={() => handleIngestion('authors')} style={{ padding: '10px 20px', background: '#4A5D23', color: 'white', border: 'none', borderRadius: '5px' }}>Ingest Authors</button>
-                    <button onClick={() => handleIngestion('bookshops')} style={{ padding: '10px 20px', background: '#d69e2e', color: 'white', border: 'none', borderRadius: '5px' }}>Ingest Bookshops</button>
-                    <button onClick={() => handleIngestion('events')} style={{ padding: '10px 20px', background: '#e53e3e', color: 'white', border: 'none', borderRadius: '5px' }}>Ingest Events</button>
-                    <button onClick={() => handleIngestion('ebooks')} style={{ padding: '10px 20px', background: '#805ad5', color: 'white', border: 'none', borderRadius: '5px' }}>Ingest Ebooks</button>
-                    <button onClick={() => handleIngestion('news')} style={{ padding: '10px 20px', background: '#38b2ac', color: 'white', border: 'none', borderRadius: '5px' }}>Ingest News</button>
+                <div className="ingestion-actions">
+                    <button className="btn-ingest books" onClick={() => handleIngestion('books')}>Ingest Books</button>
+                    <button className="btn-ingest authors" onClick={() => handleIngestion('authors')}>Ingest Authors</button>
+                    <button className="btn-ingest shops" onClick={() => handleIngestion('bookshops')}>Ingest Bookshops</button>
+                    <button className="btn-ingest events" onClick={() => handleIngestion('events')}>Ingest Events</button>
+                    <button className="btn-ingest ebooks" onClick={() => handleIngestion('ebooks')}>Ingest Ebooks</button>
+                    <button className="btn-ingest publishers" onClick={() => handleIngestion('news')}>Ingest News</button>
                 </div>
-                {ingestionMessage && <p style={{ marginTop: '10px', color: 'green' }}>{ingestionMessage}</p>}
+                {ingestionMessage && (
+                    <div className={`ingestion-status ${ingestionMessage.includes('Error') ? 'error' : 'success'}`}>
+                        {ingestionMessage}
+                    </div>
+                )}
             </div>
         </AdminLayout>
     );

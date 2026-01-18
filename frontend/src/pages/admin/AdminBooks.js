@@ -56,7 +56,7 @@ const AdminBooks = () => {
 
     const handleDelete = async (id) => {
         if (window.confirm("Are you sure you want to delete this book?")) {
-            await fetch(`${API_BASE}/books/${id}`, { 
+            await fetch(`${API_BASE}/books/${id}`, {
                 method: 'DELETE',
                 headers: getAuthHeaders()
             });
@@ -95,7 +95,7 @@ const AdminBooks = () => {
 
         const res = await fetch(url, {
             method,
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
                 ...getAuthHeaders()
             },
@@ -113,8 +113,11 @@ const AdminBooks = () => {
     return (
         <AdminLayout>
             <div className="dashboard-header">
-                <h1>Manage Books</h1>
-                <button className="btn-primary" onClick={handleAddNew}>+ Add Book</button>
+                <div>
+                    <h1>Manage Books</h1>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Catalog and manage physical books in your database.</p>
+                </div>
+                <button className="btn-primary" onClick={handleAddNew}>+ Add New Book</button>
             </div>
 
             <div className="table-container">
@@ -203,7 +206,7 @@ const AdminBooks = () => {
                                 <input type="text" value={formData.image_url} onChange={e => setFormData({ ...formData, image_url: e.target.value })} />
                             </div>
                             <div className="modal-footer">
-                                <button type="button" onClick={() => setShowModal(false)} style={{ padding: '10px', background: '#eee', border: 'none' }}>Cancel</button>
+                                <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
                                 <button type="submit" className="btn-primary">Save Book</button>
                             </div>
                         </form>

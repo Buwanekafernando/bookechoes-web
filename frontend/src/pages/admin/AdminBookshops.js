@@ -125,8 +125,11 @@ const AdminBookshops = () => {
     return (
         <AdminLayout>
             <div className="dashboard-header">
-                <h1>Manage Bookshops</h1>
-                <button className="btn-primary" onClick={() => { setEditingShop(null); setFormData({ name: '', location: '', country: '' }); setShowModal(true); }}>+ Add Shop</button>
+                <div>
+                    <h1>Manage Bookshops</h1>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Manage physical bookshop locations and their inventory.</p>
+                </div>
+                <button className="btn-primary" onClick={() => { setEditingShop(null); setFormData({ name: '', location: '', country: '' }); setShowModal(true); }}>+ Add New Shop</button>
             </div>
 
             <div className="table-container">
@@ -141,7 +144,7 @@ const AdminBookshops = () => {
                                     <td>{shop.location}, {shop.country}</td>
                                     <td className="actions-cell">
                                         <button className="btn-edit" onClick={() => { setEditingShop(shop); setFormData({ name: shop.name, location: shop.location, country: shop.country }); setShowModal(true); }}>Edit</button>
-                                        <button className="btn-primary" style={{ backgroundColor: '#2b6cb0', marginLeft: '5px' }} onClick={() => openInventory(shop)}>Manage Stock</button>
+                                        <button className="btn-primary" style={{ backgroundColor: '#2d3748', marginLeft: '5px' }} onClick={() => openInventory(shop)}>Manage Stock</button>
                                         <button className="btn-delete" onClick={() => handleDeleteShop(shop.bookshop_id)}>Delete</button>
                                     </td>
                                 </tr>
@@ -164,7 +167,7 @@ const AdminBookshops = () => {
                             <div className="form-group"><label>Location</label><input value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} required /></div>
                             <div className="form-group"><label>Country</label><input value={formData.country} onChange={e => setFormData({ ...formData, country: e.target.value })} required /></div>
                             <div className="modal-footer">
-                                <button type="button" onClick={() => setShowModal(false)} style={{ padding: '10px', background: '#eee', border: 'none' }}>Cancel</button>
+                                <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
                                 <button type="submit" className="btn-primary">Save Shop</button>
                             </div>
                         </form>
@@ -181,25 +184,25 @@ const AdminBookshops = () => {
                             <button className="close-btn" onClick={() => setShowInventory(false)}>&times;</button>
                         </div>
 
-                        <div style={{ marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '5px' }}>
-                            <h4 style={{ marginBottom: '10px' }}>Add New Book to Stock</h4>
-                            <form onSubmit={handleAddInventory} style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
-                                <div style={{ flex: 2 }}>
-                                    <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.8rem' }}>Book</label>
-                                    <select style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }} value={invFormData.book_id} onChange={e => setInvFormData({ ...invFormData, book_id: e.target.value })} required>
+                        <div style={{ marginBottom: '30px', padding: '25px', background: 'var(--bg-light)', borderRadius: '12px', border: '1px solid #edf2f7' }}>
+                            <h4 style={{ marginBottom: '15px', fontFamily: 'Playfair Display, serif', color: 'var(--primary-color)' }}>Add New Book to Stock</h4>
+                            <form onSubmit={handleAddInventory} style={{ display: 'flex', gap: '15px', alignItems: 'flex-end' }}>
+                                <div className="form-group" style={{ flex: 2, marginBottom: 0 }}>
+                                    <label>Book</label>
+                                    <select value={invFormData.book_id} onChange={e => setInvFormData({ ...invFormData, book_id: e.target.value })} required>
                                         <option value="">Select Book</option>
                                         {allBooks.map(b => <option key={b.book_id} value={b.book_id}>{b.title}</option>)}
                                     </select>
                                 </div>
-                                <div style={{ flex: 1 }}>
-                                    <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.8rem' }}>Quantity</label>
-                                    <input type="number" style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }} value={invFormData.stock_quantity} onChange={e => setInvFormData({ ...invFormData, stock_quantity: e.target.value })} required />
+                                <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                                    <label>Quantity</label>
+                                    <input type="number" value={invFormData.stock_quantity} onChange={e => setInvFormData({ ...invFormData, stock_quantity: e.target.value })} required />
                                 </div>
-                                <div style={{ flex: 1 }}>
-                                    <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.8rem' }}>Price</label>
-                                    <input type="number" step="0.01" style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }} value={invFormData.price} onChange={e => setInvFormData({ ...invFormData, price: e.target.value })} required />
+                                <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                                    <label>Price</label>
+                                    <input type="number" step="0.01" value={invFormData.price} onChange={e => setInvFormData({ ...invFormData, price: e.target.value })} required />
                                 </div>
-                                <button type="submit" className="btn-primary" style={{ padding: '10px 20px' }}>Add</button>
+                                <button type="submit" className="btn-primary">Add to Stock</button>
                             </form>
                         </div>
 
