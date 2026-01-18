@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import AdminLayout from '../../components/AdminLayout';
+import '../../styles/Admin.css';
 
 const AdminDashboard = () => {
     const [stats, setStats] = useState({
@@ -10,125 +12,119 @@ const AdminDashboard = () => {
         publishers: 0,
         events: 0
     });
-    const [ingestionMessage, setIngestionMessage] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [ingestionStatus, setIngestionStatus] = useState(null);
 
     const getAuthHeaders = () => {
         const token = localStorage.getItem('adminToken');
         return token ? { 'Authorization': `Bearer ${token}` } : {};
     };
 
-    const handleIngestion = async (type) => {
+    const fetchStats = async () => {
         try {
-            setIngestionMessage('Ingesting...');
+            const headers = getAuthHeaders();
+            const endpoints = ['books', 'authors', 'ebooks', 'bookshops', 'publishers', 'events'];
+            const results = await Promise.all(
+                endpoints.map(ep => fetch(`http://localhost/backend/api/index.php/${ep}`, { headers }).then(res => res.json()))
+            );
+
+            const newStats = {};
+            endpoints.forEach((ep, i) => {
+                newStats[ep] = results[i].body ? results[i].body.length : 0;
+            });
+            setStats(newStats);
+        } catch (error) {
+            console.error("Error fetching stats:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchStats();
+    }, []);
+
+    const handleIngestion = async (type) => {
+        setIngestionStatus({ type: 'loading', message: `Contacting AI for ${type} data...` });
+        try {
             const response = await fetch(`http://localhost/backend/api/index.php/ai?action=ingest&type=${type}`, {
                 method: 'POST',
                 headers: getAuthHeaders()
             });
             const data = await response.json();
             if (response.ok) {
-                setIngestionMessage(`Successfully ingested ${data.inserted} ${type}.`);
+                setIngestionStatus({ type: 'success', message: `Successfully ingested ${data.inserted} ${type}.` });
+                fetchStats();
             } else {
-                setIngestionMessage(`Error: ${data.message}`);
+                setIngestionStatus({ type: 'error', message: data.message });
             }
         } catch (error) {
-            setIngestionMessage('Network error during ingestion.');
+            setIngestionStatus({ type: 'error', message: "Failed to connect to AI service." });
         }
     };
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const headers = getAuthHeaders();
-                const [booksRes, authorsRes, ebooksRes, shopsRes, pubsRes, eventsRes] = await Promise.all([
-                    fetch('http://localhost/backend/api/index.php/books', { headers }),
-                    fetch('http://localhost/backend/api/index.php/authors', { headers }),
-                    fetch('http://localhost/backend/api/index.php/ebooks', { headers }),
-                    fetch('http://localhost/backend/api/index.php/bookshops', { headers }),
-                    fetch('http://localhost/backend/api/index.php/publishers', { headers }),
-                    fetch('http://localhost/backend/api/index.php/events', { headers })
-                ]);
 
-                const books = await booksRes.json();
-                const authors = await authorsRes.json();
-                const ebooks = await ebooksRes.json();
-                const shops = await shopsRes.json();
-                const pubs = await pubsRes.json();
-                const events = await eventsRes.json();
-
-                setStats({
-                    books: books.body ? books.body.length : 0,
-                    authors: authors.body ? authors.body.length : 0,
-                    ebooks: ebooks.body ? ebooks.body.length : 0,
-                    bookshops: shops.body ? shops.body.length : 0,
-                    publishers: pubs.body ? pubs.body.length : 0,
-                    events: events.body ? events.body.length : 0
-                });
-
-            } catch (error) {
-                console.error("Failed to fetch dashboard stats", error);
-            }
-        };
-
-        fetchStats();
-    }, []);
+    const statCards = [
+        { label: 'Total Books', value: stats.books, type: 'books' },
+        { label: 'Total Authors', value: stats.authors, type: 'authors' },
+        { label: 'E-Books', value: stats.ebooks, type: 'ebooks' },
+        { label: 'Bookshops', value: stats.bookshops, type: 'shops' },
+        { label: 'Publishers', value: stats.publishers, type: 'publishers' },
+        { label: 'Active Events', value: stats.events, type: 'events' },
+    ];
 
     return (
         <AdminLayout>
             <div className="dashboard-header">
                 <div>
-                    <h1>Dashboard Overview</h1>
-                    <p style={{ color: 'var(--text-muted)', marginTop: '5px' }}>Welcome to the BookEchoes Administration Portal.</p>
+                    <h1>Dashboard</h1>
+                    <p style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Welcome back to the BookEchoes control center.</p>
                 </div>
             </div>
 
             <div className="stats-grid">
-                <div className="stat-card books">
-                    <div className="stat-label">Total Books</div>
-                    <div className="stat-value">{stats.books}</div>
-                </div>
-
-                <div className="stat-card authors">
-                    <div className="stat-label">Total Authors</div>
-                    <div className="stat-value">{stats.authors}</div>
-                </div>
-
-                <div className="stat-card ebooks">
-                    <div className="stat-label">Total Ebooks</div>
-                    <div className="stat-value">{stats.ebooks}</div>
-                </div>
-
-                <div className="stat-card shops">
-                    <div className="stat-label">Bookshops</div>
-                    <div className="stat-value">{stats.bookshops}</div>
-                </div>
-
-                <div className="stat-card publishers">
-                    <div className="stat-label">Publishers</div>
-                    <div className="stat-value">{stats.publishers}</div>
-                </div>
-
-                <div className="stat-card events">
-                    <div className="stat-label">Events</div>
-                    <div className="stat-value">{stats.events}</div>
-                </div>
+                {statCards.map((card, index) => (
+                    <motion.div
+                        key={card.type}
+                        className={`stat-card ${card.type}`}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        whileHover={{ y: -5, boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}
+                    >
+                        <div className="stat-label">{card.label}</div>
+                        <div className="stat-value">{loading ? '...' : card.value}</div>
+                    </motion.div>
+                ))}
             </div>
 
-            <div className="ingestion-section">
-                <h2>AI Data Ingestion</h2>
-                <p>Use Gemini AI to fetch and enrich data from the internet.</p>
+            <motion.div
+                className="ingestion-section"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.6 }}
+            >
+                <h2>AI Data Enrichment</h2>
+                <p>Automate your catalog expansion by fetching verified literary data from the web using Gemini AI.</p>
+
                 <div className="ingestion-actions">
-                    <button className="btn-ingest books" onClick={() => handleIngestion('books')}>Ingest Books</button>
-                    <button className="btn-ingest authors" onClick={() => handleIngestion('authors')}>Ingest Authors</button>
-                    <button className="btn-ingest shops" onClick={() => handleIngestion('bookshops')}>Ingest Bookshops</button>
-                    <button className="btn-ingest events" onClick={() => handleIngestion('events')}>Ingest Events</button>
-                    <button className="btn-ingest ebooks" onClick={() => handleIngestion('ebooks')}>Ingest Ebooks</button>
-                    <button className="btn-ingest publishers" onClick={() => handleIngestion('news')}>Ingest News</button>
+                    {['books', 'authors', 'bookshops', 'events', 'ebooks', 'news'].map(type => (
+                        <button
+                            key={type}
+                            className={`btn-ingest ${type}`}
+                            onClick={() => handleIngestion(type)}
+                            disabled={ingestionStatus?.type === 'loading'}
+                        >
+                            Ingest {type.charAt(0).toUpperCase() + type.slice(1)}
+                        </button>
+                    ))}
                 </div>
-                {ingestionMessage && (
-                    <div className={`ingestion-status ${ingestionMessage.includes('Error') ? 'error' : 'success'}`}>
-                        {ingestionMessage}
+
+                {ingestionStatus && (
+                    <div className={`ingestion-status ${ingestionStatus.type}`}>
+                        {ingestionStatus.message}
                     </div>
                 )}
-            </div>
+            </motion.div>
         </AdminLayout>
     );
 };
