@@ -8,6 +8,8 @@ import AdminAuthors from './pages/admin/AdminAuthors';
 import AdminBooks from './pages/admin/AdminBooks';
 import AdminEbooks from './pages/admin/AdminEbooks';
 import AdminBookshops from './pages/admin/AdminBookshops';
+import AdminPublishers from './pages/admin/AdminPublishers';
+import AdminEvents from './pages/admin/AdminEvents';
 import './App.css';
 
 const ProtectedRoute = ({ children }) => {
@@ -30,6 +32,8 @@ function App() {
           <Route path="/admin/books" element={<ProtectedRoute><AdminBooks /></ProtectedRoute>} />
           <Route path="/admin/ebooks" element={<ProtectedRoute><AdminEbooks /></ProtectedRoute>} />
           <Route path="/admin/bookshops" element={<ProtectedRoute><AdminBookshops /></ProtectedRoute>} />
+          <Route path="/admin/publishers" element={<ProtectedRoute><AdminPublishers /></ProtectedRoute>} />
+          <Route path="/admin/events" element={<ProtectedRoute><AdminEvents /></ProtectedRoute>} />
 
         </Routes>
         <Footer />

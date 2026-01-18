@@ -308,7 +308,7 @@ class AIController {
         // For news, just return the data since no table to store
         // In future, could store in a news table
         return ['inserted' => count($news), 'errors' => [], 'data' => $news];
-    }
+    private function findOrCreateAuthor($authorData) {
         if (empty($authorData['name'])) {
             return null;
         }

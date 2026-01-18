@@ -16,46 +16,68 @@ class EventController extends Controller {
     public function getAll() {
         $stmt = $this->event->readAll();
         $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        Response::success("Events fetched successfully", ["body" => $events, "itemCount" => count($events)]);
+        $itemCount = count($events);
+        
+        if ($itemCount > 0) {
+            $arr = array("body" => $events, "itemCount" => $itemCount);
+            echo json_encode($arr);
+        } else {
+            http_response_code(404);
+            echo json_encode(array("message" => "No record found."));
+        }
     }
 
     public function getOne($id) {
-        if (!$id) Response::error("ID is required");
-        $event = $this->event->readOne($id);
-        if ($event) {
-            Response::success("Event fetched successfully", $event);
+        if (!$id) {
+            http_response_code(400);
+            echo json_encode(array("message" => "ID is required."));
+            return;
+        }
+        $data = $this->event->readOne($id);
+        if ($data) {
+            http_response_code(200);
+            echo json_encode($data);
         } else {
-            Response::error("Event not found", 404);
+            http_response_code(404);
+            echo json_encode(array("message" => "Event not found."));
         }
     }
 
     public function create() {
         Auth::validateToken();
         $data = $this->getInput();
-        $errors = Validator::validateRequired($data, ['name', 'location', 'date_start']);
-
-        if (!empty($errors)) {
-            Response::error("Validation Error", 400, $errors);
+        if (empty($data['name']) || empty($data['location']) || empty($data['date_start'])) {
+            http_response_code(400);
+            echo json_encode(array("message" => "Validation Error: name, location and date_start are required."));
+            return;
         }
-        $data = Validator::sanitize($data);
-        
+
         if (!isset($data['date_end'])) $data['date_end'] = null;
 
         if ($this->event->create($data)) {
-            Response::success("Event created successfully", null, 201);
+            http_response_code(201);
+            echo json_encode(array("message" => "Event created successfully."));
         } else {
-            Response::error("Unable to create event", 503);
+            http_response_code(500);
+            echo json_encode(array("message" => "Unable to create event."));
         }
     }
 
     public function update($id) {
         Auth::validateToken();
-        if (!$id) Response::error("ID is required");
+        if (!$id) {
+            http_response_code(400);
+            echo json_encode(array("message" => "ID is required."));
+            return;
+        }
         $data = $this->getInput();
-        $data = Validator::sanitize($data);
         
         $existing = $this->event->readOne($id);
-        if (!$existing) Response::error("Event not found", 404);
+        if (!$existing) {
+            http_response_code(404);
+            echo json_encode(array("message" => "Event not found."));
+            return;
+        }
         
         $fields = ['name', 'location', 'date_start', 'date_end'];
         foreach ($fields as $field) {
@@ -63,20 +85,28 @@ class EventController extends Controller {
         }
 
         if ($this->event->update($id, $data)) {
-            Response::success("Event updated successfully");
+            http_response_code(200);
+            echo json_encode(array("message" => "Event updated successfully."));
         } else {
-            Response::error("Unable to update event", 503);
+            http_response_code(500);
+            echo json_encode(array("message" => "Unable to update event."));
         }
     }
 
     public function delete($id) {
         Auth::validateToken();
-        if (!$id) Response::error("ID is required");
+        if (!$id) {
+            http_response_code(400);
+            echo json_encode(array("message" => "ID is required."));
+            return;
+        }
 
         if ($this->event->delete($id)) {
-            Response::success("Event deleted successfully");
+            http_response_code(200);
+            echo json_encode(array("message" => "Event deleted."));
         } else {
-            Response::error("Unable to delete event", 503);
+            http_response_code(500);
+            echo json_encode(array("message" => "Unable to delete event."));
         }
     }
 }
