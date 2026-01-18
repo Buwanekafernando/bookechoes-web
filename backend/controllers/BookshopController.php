@@ -1,18 +1,19 @@
 <?php
-require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/Controller.php';
 require_once __DIR__ . '/../models/Bookshop.php';
+require_once __DIR__ . '/../utils/Auth.php';
 
-class BookshopController {
-    private $conn;
+class BookshopController extends Controller {
+    private $bookshop;
 
     public function __construct($db) {
-        $this->conn = $db;
+        parent::__construct($db);
+        $this->bookshop = new Bookshop($db);
     }
 
     // Bookshop CRUD
     public function getAll() {
-        $item = new Bookshop($this->conn);
-        $stmt = $item->readAll();
+        $stmt = $this->bookshop->readAll();
         $itemCount = $stmt->rowCount();
 
         if ($itemCount > 0) {
@@ -28,34 +29,27 @@ class BookshopController {
     }
 
     public function getOne($id) {
-        $item = new Bookshop($this->conn);
-        $data = $item->readOne($id);
+        $data = $this->bookshop->readOne($id);
         if ($data != null) {
             http_response_code(200);
             echo json_encode($data);
         } else {
             http_response_code(404);
-            echo json_encode("Bookshop not found.");
+            echo json_encode(array("message" => "Bookshop not found."));
         }
     }
 
     public function create() {
-        $item = new Bookshop($this->conn);
-        $data = json_decode(file_get_contents("php://input"));
+        Auth::validateToken();
+        $data = $this->getInput();
         
-        if (empty($data->name)) {
+        if (empty($data['name'])) {
              http_response_code(400);
              echo json_encode(array("message" => "Name is required."));
              return;
         }
 
-        $createData = [
-            'name' => $data->name,
-            'location' => isset($data->location) ? $data->location : null,
-            'country' => isset($data->country) ? $data->country : null,
-        ];
-
-        if ($item->create($createData)) {
+        if ($this->bookshop->create($data)) {
             http_response_code(201);
             echo json_encode(array("message" => "Bookshop created successfully."));
         } else {
@@ -65,22 +59,16 @@ class BookshopController {
     }
 
     public function update($id) {
-        $item = new Bookshop($this->conn);
-        $data = json_decode(file_get_contents("php://input"));
+        Auth::validateToken();
+        $data = $this->getInput();
 
-        if (empty($data->name)) {
+        if (empty($data['name'])) {
              http_response_code(400);
              echo json_encode(array("message" => "Name is required."));
              return;
         }
 
-        $updateData = [
-            'name' => $data->name,
-            'location' => isset($data->location) ? $data->location : null,
-            'country' => isset($data->country) ? $data->country : null,
-        ];
-
-        if ($item->update($id, $updateData)) {
+        if ($this->bookshop->update($id, $data)) {
             http_response_code(200);
             echo json_encode(array("message" => "Bookshop updated successfully."));
         } else {
@@ -90,8 +78,8 @@ class BookshopController {
     }
 
     public function delete($id) {
-        $item = new Bookshop($this->conn);
-        if ($item->delete($id)) {
+        Auth::validateToken();
+        if ($this->bookshop->delete($id)) {
             http_response_code(200);
             echo json_encode(array("message" => "Bookshop deleted."));
         } else {
@@ -102,8 +90,7 @@ class BookshopController {
 
     // Inventory Methods
     public function getInventory($bookshop_id) {
-        $item = new Bookshop($this->conn);
-        $stmt = $item->getInventory($bookshop_id);
+        $stmt = $this->bookshop->getInventory($bookshop_id);
         $itemCount = $stmt->rowCount();
 
         $arr = array("body" => array(), "itemCount" => $itemCount);
@@ -114,8 +101,8 @@ class BookshopController {
     }
 
     public function addInventory($bookshop_id) {
-        $item = new Bookshop($this->conn);
-        $data = json_decode(file_get_contents("php://input"));
+        Auth::validateToken();
+        $data = (object)$this->getInput();
 
         if (!isset($data->book_id) || !isset($data->stock_quantity) || !isset($data->price)) {
             http_response_code(400);
@@ -123,7 +110,7 @@ class BookshopController {
             return;
         }
 
-        if ($item->addInventory($bookshop_id, $data->book_id, $data->stock_quantity, $data->price)) {
+        if ($this->bookshop->addInventory($bookshop_id, $data->book_id, $data->stock_quantity, $data->price)) {
             http_response_code(201);
             echo json_encode(array("message" => "Inventory added."));
         } else {
@@ -133,11 +120,8 @@ class BookshopController {
     }
     
     public function updateInventory($bookshop_id, $book_id) {
-        $item = new Bookshop($this->conn);
-        $data = json_decode(file_get_contents("php://input"));
-         
-        // book_id is passed in URL usually for individual item update?
-        // Method signature: updateInventory($bookshop_id, $book_id, $stock, $price)
+        Auth::validateToken();
+        $data = (object)$this->getInput();
         
         if (!isset($data->stock_quantity) || !isset($data->price)) {
             http_response_code(400);
@@ -145,7 +129,7 @@ class BookshopController {
             return;
         }
 
-        if ($item->updateInventory($bookshop_id, $book_id, $data->stock_quantity, $data->price)) {
+        if ($this->bookshop->updateInventory($bookshop_id, $book_id, $data->stock_quantity, $data->price)) {
             http_response_code(200);
             echo json_encode(array("message" => "Inventory updated."));
         } else {
@@ -155,8 +139,8 @@ class BookshopController {
     }
 
     public function removeInventory($bookshop_id, $book_id) {
-        $item = new Bookshop($this->conn);
-        if ($item->removeInventory($bookshop_id, $book_id)) {
+        Auth::validateToken();
+        if ($this->bookshop->removeInventory($bookshop_id, $book_id)) {
             http_response_code(200);
             echo json_encode(array("message" => "Inventory removed."));
         } else {
