@@ -9,15 +9,21 @@ const AdminEbooks = () => {
     const [editingEbook, setEditingEbook] = useState(null);
 
     const [formData, setFormData] = useState({
-        name: '', // Ebook uses 'name' instead of 'title' in DB schema
+        name: '',
         category: '',
         year_of_publish: new Date().getFullYear(),
         language: 'English',
+        number_of_chapters: 0,
         image_url: '',
         author_id: ''
     });
 
     const API_BASE = "http://localhost/backend/api/index.php";
+
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem('adminToken');
+        return token ? { 'Authorization': `Bearer ${token}` } : {};
+    };
 
     useEffect(() => {
         fetchData();
@@ -25,9 +31,10 @@ const AdminEbooks = () => {
 
     const fetchData = async () => {
         try {
+            const headers = getAuthHeaders();
             const [ebooksRes, authorsRes] = await Promise.all([
-                fetch(`${API_BASE}/ebooks`),
-                fetch(`${API_BASE}/authors`)
+                fetch(`${API_BASE}/ebooks`, { headers }),
+                fetch(`${API_BASE}/authors`, { headers })
             ]);
             const ebooksData = await ebooksRes.json();
             const authorsData = await authorsRes.json();
@@ -39,7 +46,10 @@ const AdminEbooks = () => {
 
     const handleDelete = async (id) => {
         if (window.confirm("Delete this ebook?")) {
-            await fetch(`${API_BASE}/ebooks/${id}`, { method: 'DELETE' });
+            await fetch(`${API_BASE}/ebooks/${id}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
             fetchData();
         }
     };
@@ -51,6 +61,7 @@ const AdminEbooks = () => {
             category: ebook.category,
             year_of_publish: ebook.year_of_publish,
             language: ebook.language,
+            number_of_chapters: ebook.number_of_chapters || 0,
             image_url: ebook.image_url || '',
             author_id: ebook.author_id
         });
@@ -59,7 +70,7 @@ const AdminEbooks = () => {
 
     const handleAddNew = () => {
         setEditingEbook(null);
-        setFormData({ name: '', category: '', year_of_publish: 2024, language: 'English', image_url: '', author_id: '' });
+        setFormData({ name: '', category: '', year_of_publish: 2024, language: 'English', number_of_chapters: 0, image_url: '', author_id: '' });
         setShowModal(true);
     };
 
@@ -68,13 +79,21 @@ const AdminEbooks = () => {
         const method = editingEbook ? 'PUT' : 'POST';
         const url = editingEbook ? `${API_BASE}/ebooks/${editingEbook.ebook_id}` : `${API_BASE}/ebooks`;
 
-        await fetch(url, {
+        const res = await fetch(url, {
             method,
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeaders()
+            },
             body: JSON.stringify(formData)
         });
-        setShowModal(false);
-        fetchData();
+
+        if (res.ok) {
+            setShowModal(false);
+            fetchData();
+        } else {
+            alert("Failed to save ebook.");
+        }
     };
 
     return (
@@ -85,7 +104,7 @@ const AdminEbooks = () => {
             </div>
 
             <div className="table-container">
-                {loading ? <p>Loading...</p> : (
+                {loading ? <p style={{ padding: '20px' }}>Loading...</p> : (
                     <table className="data-table">
                         <thead>
                             <tr>
@@ -100,9 +119,14 @@ const AdminEbooks = () => {
                             {ebooks.map(ebook => (
                                 <tr key={ebook.ebook_id}>
                                     <td>{ebook.ebook_id}</td>
-                                    <td>{ebook.name}</td>
+                                    <td>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            {ebook.image_url && <img src={ebook.image_url} alt="" style={{ width: '30px', height: '40px', objectFit: 'cover' }} />}
+                                            {ebook.name}
+                                        </div>
+                                    </td>
                                     <td>{ebook.category}</td>
-                                    <td>{ebook.author_name}</td>
+                                    <td>{ebook.author_name || ebook.author_id}</td>
                                     <td className="actions-cell">
                                         <button className="btn-edit" onClick={() => handleEdit(ebook)}>Edit</button>
                                         <button className="btn-delete" onClick={() => handleDelete(ebook.ebook_id)}>Delete</button>
@@ -123,12 +147,26 @@ const AdminEbooks = () => {
                         </div>
                         <form onSubmit={handleSubmit}>
                             <div className="form-group">
-                                <label>Name</label>
+                                <label>Title/Name</label>
                                 <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required />
                             </div>
                             <div className="form-group">
                                 <label>Category</label>
                                 <input type="text" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} required />
+                            </div>
+                            <div style={{ display: 'flex', gap: '20px' }}>
+                                <div className="form-group" style={{ flex: 1 }}>
+                                    <label>Year</label>
+                                    <input type="number" value={formData.year_of_publish} onChange={e => setFormData({ ...formData, year_of_publish: e.target.value })} />
+                                </div>
+                                <div className="form-group" style={{ flex: 1 }}>
+                                    <label>Chapters</label>
+                                    <input type="number" value={formData.number_of_chapters} onChange={e => setFormData({ ...formData, number_of_chapters: e.target.value })} />
+                                </div>
+                            </div>
+                            <div className="form-group">
+                                <label>Language</label>
+                                <input type="text" value={formData.language} onChange={e => setFormData({ ...formData, language: e.target.value })} />
                             </div>
                             <div className="form-group">
                                 <label>Author</label>
@@ -137,9 +175,13 @@ const AdminEbooks = () => {
                                     {authors.map(a => <option key={a.author_id} value={a.author_id}>{a.name}</option>)}
                                 </select>
                             </div>
+                            <div className="form-group">
+                                <label>Image URL</label>
+                                <input type="text" value={formData.image_url} onChange={e => setFormData({ ...formData, image_url: e.target.value })} />
+                            </div>
                             <div className="modal-footer">
-                                <button type="button" onClick={() => setShowModal(false)}>Cancel</button>
-                                <button type="submit" className="btn-primary">Save</button>
+                                <button type="button" onClick={() => setShowModal(false)} style={{ padding: '10px', background: '#eee', border: 'none' }}>Cancel</button>
+                                <button type="submit" className="btn-primary">Save Ebook</button>
                             </div>
                         </form>
                     </div>
