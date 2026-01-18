@@ -12,27 +12,36 @@ const AdminBookshops = () => {
     const [showInventory, setShowInventory] = useState(false);
     const [currentShop, setCurrentShop] = useState(null);
     const [inventory, setInventory] = useState([]);
-    const [allBooks, setAllBooks] = useState([]); // For adding to inventory
+    const [allBooks, setAllBooks] = useState([]);
     const [invFormData, setInvFormData] = useState({ book_id: '', stock_quantity: 0, price: 0 });
 
     const API_BASE = "http://localhost/backend/api/index.php";
 
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem('adminToken');
+        return token ? { 'Authorization': `Bearer ${token}` } : {};
+    };
+
     useEffect(() => {
         fetchShops();
-        fetchBooks(); // Pre-fetch books for inventory dropdown
+        fetchBooks();
     }, []);
 
     const fetchShops = async () => {
-        const res = await fetch(`${API_BASE}/bookshops`);
-        const data = await res.json();
-        setShops(data.body || []);
-        setLoading(false);
+        try {
+            const res = await fetch(`${API_BASE}/bookshops`, { headers: getAuthHeaders() });
+            const data = await res.json();
+            setShops(data.body || []);
+        } catch (error) { console.error(error); }
+        finally { setLoading(false); }
     };
 
     const fetchBooks = async () => {
-        const res = await fetch(`${API_BASE}/books`);
-        const data = await res.json();
-        setAllBooks(data.body || []);
+        try {
+            const res = await fetch(`${API_BASE}/books`, { headers: getAuthHeaders() });
+            const data = await res.json();
+            setAllBooks(data.body || []);
+        } catch (error) { console.error(error); }
     };
 
     // Shop CRUD
@@ -40,55 +49,77 @@ const AdminBookshops = () => {
         e.preventDefault();
         const method = editingShop ? 'PUT' : 'POST';
         const url = editingShop ? `${API_BASE}/bookshops/${editingShop.bookshop_id}` : `${API_BASE}/bookshops`;
-        await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) });
-        setShowModal(false);
-        fetchShops();
+        const res = await fetch(url, {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeaders()
+            },
+            body: JSON.stringify(formData)
+        });
+        if (res.ok) {
+            setShowModal(false);
+            fetchShops();
+        } else {
+            alert("Failed to save shop.");
+        }
     };
 
     const handleDeleteShop = async (id) => {
-        if (window.confirm("Delete Shop?")) { await fetch(`${API_BASE}/bookshops/${id}`, { method: 'DELETE' }); fetchShops(); }
+        if (window.confirm("Delete Shop?")) {
+            await fetch(`${API_BASE}/bookshops/${id}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
+            fetchShops();
+        }
     };
 
     // Inventory Logic
     const openInventory = async (shop) => {
         setCurrentShop(shop);
         setShowInventory(true);
-        // Fetch inventory
-        const res = await fetch(`${API_BASE}/bookshops/${shop.bookshop_id}/inventory`);
-        const data = await res.json();
-        setInventory(data.body || []);
+        fetchInventory(shop.bookshop_id);
+    };
+
+    const fetchInventory = async (shopId) => {
+        try {
+            const res = await fetch(`${API_BASE}/bookshops/${shopId}/inventory`, { headers: getAuthHeaders() });
+            const data = await res.json();
+            setInventory(data.body || []);
+        } catch (error) { console.error(error); }
     };
 
     const handleAddInventory = async (e) => {
         e.preventDefault();
-        // Add book to shop
-        await fetch(`${API_BASE}/bookshops/${currentShop.bookshop_id}/inventory`, {
+        const res = await fetch(`${API_BASE}/bookshops/${currentShop.bookshop_id}/inventory`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeaders()
+            },
             body: JSON.stringify(invFormData)
         });
-        // Refresh inventory
-        const res = await fetch(`${API_BASE}/bookshops/${currentShop.bookshop_id}/inventory`);
-        const data = await res.json();
-        setInventory(data.body || []);
-        setInvFormData({ book_id: '', stock_quantity: 0, price: 0 });
+        if (res.ok) {
+            fetchInventory(currentShop.bookshop_id);
+            setInvFormData({ book_id: '', stock_quantity: 0, price: 0 });
+        } else {
+            alert("Failed to add inventory.");
+        }
     };
 
     const handleRemoveInventory = async (bookId) => {
-        await fetch(`${API_BASE}/bookshops/${currentShop.bookshop_id}/inventory`, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ book_id: bookId }) // Usually delete body needs special handling or URL param. 
-            // My API might expect body or query. Let's assume body works as implemented in controller.
-        });
-        // Actually, my controller expects body for DELETE? Let's check. 
-        // Ah, typically DELETE is URL based. But my router logic might need checking.
-        // Assuming body works for now based on verify script.
-
-        // Refresh
-        const res = await fetch(`${API_BASE}/bookshops/${currentShop.bookshop_id}/inventory`);
-        const data = await res.json();
-        setInventory(data.body || []);
+        if (window.confirm("Remove this book from inventory?")) {
+            const res = await fetch(`${API_BASE}/bookshops/${currentShop.bookshop_id}/inventory/${bookId}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
+            if (res.ok) {
+                fetchInventory(currentShop.bookshop_id);
+            } else {
+                alert("Failed to remove inventory.");
+            }
+        }
     };
 
     return (
@@ -99,35 +130,43 @@ const AdminBookshops = () => {
             </div>
 
             <div className="table-container">
-                <table className="data-table">
-                    <thead><tr><th>ID</th><th>Name</th><th>Location</th><th>Actions</th></tr></thead>
-                    <tbody>
-                        {shops.map(shop => (
-                            <tr key={shop.bookshop_id}>
-                                <td>{shop.bookshop_id}</td>
-                                <td>{shop.name}</td>
-                                <td>{shop.location}, {shop.country}</td>
-                                <td className="actions-cell">
-                                    <button className="btn-edit" onClick={() => { setEditingShop(shop); setFormData(shop); setShowModal(true); }}>Edit</button>
-                                    <button className="btn-primary" style={{ backgroundColor: '#2b6cb0', marginLeft: '5px' }} onClick={() => openInventory(shop)}>Manage Stock</button>
-                                    <button className="btn-delete" onClick={() => handleDeleteShop(shop.bookshop_id)}>Delete</button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                {loading ? <p style={{ padding: '20px' }}>Loading...</p> : (
+                    <table className="data-table">
+                        <thead><tr><th>ID</th><th>Name</th><th>Location</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            {shops.map(shop => (
+                                <tr key={shop.bookshop_id}>
+                                    <td>{shop.bookshop_id}</td>
+                                    <td>{shop.name}</td>
+                                    <td>{shop.location}, {shop.country}</td>
+                                    <td className="actions-cell">
+                                        <button className="btn-edit" onClick={() => { setEditingShop(shop); setFormData({ name: shop.name, location: shop.location, country: shop.country }); setShowModal(true); }}>Edit</button>
+                                        <button className="btn-primary" style={{ backgroundColor: '#2b6cb0', marginLeft: '5px' }} onClick={() => openInventory(shop)}>Manage Stock</button>
+                                        <button className="btn-delete" onClick={() => handleDeleteShop(shop.bookshop_id)}>Delete</button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
 
             {/* Shop Modal */}
             {showModal && (
                 <div className="modal-overlay">
                     <div className="modal">
-                        <h2>{editingShop ? 'Edit Shop' : 'Add Shop'}</h2>
+                        <div className="modal-header">
+                            <h2>{editingShop ? 'Edit Shop' : 'Add New Shop'}</h2>
+                            <button className="close-btn" onClick={() => setShowModal(false)}>&times;</button>
+                        </div>
                         <form onSubmit={handleShopSubmit}>
                             <div className="form-group"><label>Name</label><input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required /></div>
                             <div className="form-group"><label>Location</label><input value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} required /></div>
                             <div className="form-group"><label>Country</label><input value={formData.country} onChange={e => setFormData({ ...formData, country: e.target.value })} required /></div>
-                            <div className="modal-footer"><button type="submit" className="btn-primary">Save</button><button type="button" onClick={() => setShowModal(false)}>Close</button></div>
+                            <div className="modal-footer">
+                                <button type="button" onClick={() => setShowModal(false)} style={{ padding: '10px', background: '#eee', border: 'none' }}>Cancel</button>
+                                <button type="submit" className="btn-primary">Save Shop</button>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -143,43 +182,45 @@ const AdminBookshops = () => {
                         </div>
 
                         <div style={{ marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '5px' }}>
-                            <h4>Add New Book to Stock</h4>
+                            <h4 style={{ marginBottom: '10px' }}>Add New Book to Stock</h4>
                             <form onSubmit={handleAddInventory} style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
                                 <div style={{ flex: 2 }}>
-                                    <label style={{ display: 'block', fontSize: '0.8rem' }}>Book</label>
-                                    <select style={{ width: '100%', padding: '8px' }} value={invFormData.book_id} onChange={e => setInvFormData({ ...invFormData, book_id: e.target.value })} required>
+                                    <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.8rem' }}>Book</label>
+                                    <select style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }} value={invFormData.book_id} onChange={e => setInvFormData({ ...invFormData, book_id: e.target.value })} required>
                                         <option value="">Select Book</option>
                                         {allBooks.map(b => <option key={b.book_id} value={b.book_id}>{b.title}</option>)}
                                     </select>
                                 </div>
                                 <div style={{ flex: 1 }}>
-                                    <label style={{ display: 'block', fontSize: '0.8rem' }}>Quantity</label>
-                                    <input type="number" style={{ width: '100%', padding: '8px' }} value={invFormData.stock_quantity} onChange={e => setInvFormData({ ...invFormData, stock_quantity: e.target.value })} required />
+                                    <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.8rem' }}>Quantity</label>
+                                    <input type="number" style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }} value={invFormData.stock_quantity} onChange={e => setInvFormData({ ...invFormData, stock_quantity: e.target.value })} required />
                                 </div>
                                 <div style={{ flex: 1 }}>
-                                    <label style={{ display: 'block', fontSize: '0.8rem' }}>Price</label>
-                                    <input type="number" step="0.01" style={{ width: '100%', padding: '8px' }} value={invFormData.price} onChange={e => setInvFormData({ ...invFormData, price: e.target.value })} required />
+                                    <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.8rem' }}>Price</label>
+                                    <input type="number" step="0.01" style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }} value={invFormData.price} onChange={e => setInvFormData({ ...invFormData, price: e.target.value })} required />
                                 </div>
-                                <button type="submit" className="btn-primary">Add</button>
+                                <button type="submit" className="btn-primary" style={{ padding: '10px 20px' }}>Add</button>
                             </form>
                         </div>
 
-                        <table className="data-table">
-                            <thead><tr><th>Book Title</th><th>Stock</th><th>Price</th><th>Action</th></tr></thead>
-                            <tbody>
-                                {inventory.map((item, idx) => (
-                                    <tr key={idx}>
-                                        <td>{item.title}</td>
-                                        <td>{item.stock_quantity}</td>
-                                        <td>${item.price}</td>
-                                        <td>
-                                            <button className="btn-delete" onClick={() => handleRemoveInventory(item.book_id)}>Remove</button>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {inventory.length === 0 && <tr><td colSpan="4" style={{ textAlign: 'center' }}>No inventory found.</td></tr>}
-                            </tbody>
-                        </table>
+                        <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                            <table className="data-table">
+                                <thead style={{ position: 'sticky', top: 0, background: 'white' }}><tr><th>Book Title</th><th>Stock</th><th>Price</th><th>Action</th></tr></thead>
+                                <tbody>
+                                    {inventory.map((item, idx) => (
+                                        <tr key={idx}>
+                                            <td>{item.title}</td>
+                                            <td>{item.stock_quantity}</td>
+                                            <td>${item.price}</td>
+                                            <td>
+                                                <button className="btn-delete" onClick={() => handleRemoveInventory(item.book_id)}>Remove</button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {inventory.length === 0 && <tr><td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>No inventory found.</td></tr>}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             )}
