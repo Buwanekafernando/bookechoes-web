@@ -16,7 +16,7 @@ class EventController extends Controller {
     public function getAll() {
         $stmt = $this->event->readAll();
         $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        Response::success("Events fetched successfully", $events);
+        Response::success("Events fetched successfully", ["body" => $events, "itemCount" => count($events)]);
     }
 
     public function getOne($id) {

@@ -152,6 +152,19 @@ if ($resource === 'publishers') {
     exit();
 }
 
+// Event Routes
+if ($resource === 'events') {
+    require_once __DIR__ . '/../controllers/EventController.php';
+    $controller = new EventController($db);
+    $method = $_SERVER['REQUEST_METHOD'];
+    
+    if ($method === 'GET') { if ($id) $controller->getOne($id); else $controller->getAll(); }
+    elseif ($method === 'POST') $controller->create();
+    elseif ($method === 'PUT') { if ($id) $controller->update($id); else http_response_code(400); }
+    elseif ($method === 'DELETE') { if ($id) $controller->delete($id); else http_response_code(400); }
+    exit();
+}
+
 // Bookshop Routes
 if ($resource === 'bookshops') {
     require_once __DIR__ . '/../controllers/BookshopController.php';
